@@ -20,7 +20,7 @@ class Merge(nn.Module):
         # if len(children < 2):
         #     raise Exception('Tried to merge less than two objects')
 
-        self.children = children
+        self.childs = children
         self.parent = parent
 
     def forward(self, input):
@@ -32,23 +32,19 @@ class MergeSum(Merge):
         super(MergeSum, self).__init__(children, parent)
 
     def forward(self, input):
-        res = [y(input) for y in self.children]
-        joined = torch.sum(torch.stack(res).cuda(), dim=0)  #
+        res = [y(input) for y in self.childs]
+        joined = torch.sum(torch.stack(res), dim=0)  # TODO how to choose the dim!?
 
         return self.parent(joined)
 
 
 class MergeCat(Merge):
-
     def __init__(self, children, parent):
         super(MergeCat, self).__init__(children, parent)
 
     def forward(self, input):
-        res = []
-        print(self.children)
-        for y in self.children:
-            res.append(y(input))
-        # res = [y(input) for y in self.children]
-        joined = cat(res, dim=0)
+        self.childs = nn.ModuleList(self.childs)
+        res = [y(input) for y in self.childs]
+        joined = cat(res, dim=0)  # TODO how to choose the dim!?
 
         return self.parent(joined)

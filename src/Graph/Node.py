@@ -32,21 +32,23 @@ class Node:
         return self.children[childNum]
 
     def getOutputNode(self):
-        if (len(self.children) == 0):
+        if len(self.children) == 0:
             return self
 
         return self.children[0].getOutputNode()
 
     def getInputNode(self):
-        if (len(self.parents) == 0):
+        if len(self.parents) == 0:
             return self
 
         return self.parents[0].getInputNode()
 
     def getTraversalIDs(self, currentID=""):
-        """should be called on root node
-            calculates all nodes traversal ID
         """
+        should be called on root node
+        calculates all nodes traversal IDs
+        """
+        # TODO if len(self.partents) != 0 exception bc not root node?
         self.traversalID = currentID
         # print(self,"num children:", len(self.children))
         # print("Me:",self,"child:",self.children[0])
@@ -118,6 +120,31 @@ class Node:
 
     def getPlotColour(self):
         return 'ro'
+
+    def dfs(self, other_id):
+        if other_id == self.traversalID:
+            return True
+
+        for child in self.children:
+            return child.dfs(other_id)
+
+        return False
+
+    def is_linear(self):
+        """Determines if you and your child are linear"""
+        return len(self.children) == 1 and len(self.children[0].children == 1)
+
+    # TODO test this!
+    def is_diamond_right(self, child_index):
+        """Checks for a diamond structure with child at the given index and next index"""
+        if len(self.children) < 2 or len(self.children) >= child_index:
+            return False
+
+        left_id = self.children[child_index].traversalID
+        return not self.children[child_index + 1].dfs(left_id)
+
+    def is_tri_right(self, child_index):
+        return not (self.is_diamond_right(child_index) and self.is_linear())
 
 
 def genNodeGraph(nodeType, graphType="diamond", linearCount=3):

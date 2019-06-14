@@ -10,7 +10,7 @@ class Net(nn.Module):
         self.lr = lr
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr, betas=(beta1, beta2))
 
-        print('Created network with architecture:', self.model, sep='\n')
+        # print('Created network with architecture:', self.model, sep='\n')
 
     def forward(self, input):
         return self.model(input)

@@ -1,5 +1,5 @@
 import torch.nn as nn
-import torch.tensor
+import torch
 from torch.utils.data import DataLoader
 
 from torchvision import datasets, transforms
@@ -15,11 +15,12 @@ layers1 = [nn.Linear(500, 500), nn.ReLU()]
 layers2 = [nn.Linear(500, 500), nn.ReLU()]
 
 model1 = Net(layers1, loss_fn=nn.NLLLoss()).cuda()
-model2 = Net(layers2, loss_fn=nn.NLLLoss()).cuda()
+model2 = Net(layers1, loss_fn=nn.NLLLoss()).cuda()
 model3 = Net(layers2, loss_fn=nn.NLLLoss()).cuda()
 
-newModel = MergeCat([model1, model2], model3).cuda()
-print(newModel)
-x = torch.randn(500, 1, device='cuda')
+children = [model1, model2]
+newModel = nn.Sequential(model1, MergeCat(children, model3))
+# print(newModel)
+x = torch.randn(1, 500, device='cuda')
 
 newModel(x)
