@@ -2,7 +2,7 @@ from src.Graph.Node import Node
 import torch.nn as nn
 import torch
 
-from src.Learner.Layers import MergeSum
+from src.Learner.Layers import MergeSum, SequentialJoin
 import math
 
 
@@ -22,10 +22,12 @@ class ModuleNode(Node):
     def __init__(self):
         Node.__init__(self)
         self.deepLayer = None  # an nn layer object such as    nn.Conv2d(3, 6, 5) or nn.Linear(84, 10)
-        self.activation = nn.ReLU
+        # self.activation = nn.ReLU  # should we have an activation here?
         self.inFeatures = -1
         self.outFeatures = -1
         self.traversalID = ""
+
+        self.parentLayers = None
 
     def createLayers(self, inChannels=None, outChannels=20):
         self.outFeatures = outChannels
@@ -141,6 +143,7 @@ class ModuleNode(Node):
             return out
 
     def getDimensionality(self):
+        # TODO
         print("need to implement get dimensionality")
         # print(torch.cumprod(self.deepLayer.shape()))
         return 10 * 10 * self.deepLayer.out_channels  # 10*10 because by the time the 28*28 has gone through all the convs - it has been reduced to 10810
@@ -149,9 +152,9 @@ class ModuleNode(Node):
         if (deepLayer is None):
             deepLayer = self.deepLayer
 
-        if (type(deepLayer) == nn.Conv2d):
+        if type(deepLayer) == nn.Conv2d:
             numFeatures = deepLayer.out_channels
-        elif (type(deepLayer) == nn.Linear):
+        elif type(deepLayer) == nn.Linear:
             numFeatures = deepLayer.deepLayer.out_features
         else:
             print("cannot extract num features from layer type:", type(deepLayer))
@@ -159,33 +162,24 @@ class ModuleNode(Node):
 
         return numFeatures
 
+    # should start by being called on the output node
     def to_nn(self):
-        out_node = self.getOutputNode()
-        # find out which case we are in
-        if self.traversalID == out_node.traversalID:  # if is output node
-            return  # Not sure if anything needs to be done here
-        # both: squash all linear parts children == parents == 1
+        # list of all the parents as nn.Modules
+        parent_layers = nn.ModuleList([parent.to_nn() for parent in self.parents])
 
-        if self.is_linear():
-            self.squash()
-        else:
-            for i, child in enumerate(self.children[:-1]):
-                child.to_nn()
+        if len(parent_layers) == 1:  # only a single parent
+            print('single')
+            return SequentialJoin([parent_layers[0], self.deepLayer])  # activation?
 
-                if self.is_diamond_right(i):
-                    # if in here all children must be sequential since this method was called on them
-                    # TODO represent these changes in the graph?
-                    return nn.Sequential(self.deepLayer,
-                                         self.activation,
-                                         MergeSum([self.children[i].deepLayer, self.children[i + 1]], self.parents[
-                                             0]))  # TODO self.parents[0] is not the correct parent because we have not edited the graph
-                elif self.is_tri_right(i):
-                    # if in here all children must be sequential since this method was called on them
-                    pass  # TODO
-                else:
-                    # This should be semi linear ie 1 child but child has > 1 child
-                    print('Hopefully an intermediate to a larger structure')
-                    self.plotTree(set(), math.radians(0))  # TODO default values
+        # Multiple parents
+        if len(parent_layers) > 2:
+            print('joining')
+            return self.squash(parent_layers, self.deepLayer)
 
-    def squash(self):
-        return nn.Sequential()
+        # input node (base case)
+        return parent_layers
+
+    def squash(self, parents, child):
+        """Chooses correct type of merge for all parents to output for a single child"""
+        # TODO choose merge type depending on parent and child dims
+        return MergeSum(parents)

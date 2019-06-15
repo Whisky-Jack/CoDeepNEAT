@@ -52,12 +52,11 @@ class Generation:
 
             moduleGraph = blueprint.parseToModule(self)
             moduleGraph.createLayers(inChannels=1)
-            moduleGraph.insertAggregatorNodes()
-            #moduleGraph.plotTree(set(), math.radians(0))
+            # moduleGraph.insertAggregatorNodes()
+            moduleGraph.plotTree(set(), math.radians(0))
 
-            net = ModuleNet(moduleGraph)#.to(torch.device("cuda:0"))
-            print("parsed blueprint to NN:",net)
+            # net = ModuleNet(moduleGraph)  # .to(torch.device("cuda:0"))
+            net = moduleGraph.getOutputNode().to_nn()
+            print("parsed blueprint to NN:", net)
 
-            Evaluator.evaluate(net, 15, dataset='mnist', path='../data', device=torch.device("cpu") )
-
-
+            # Evaluator.evaluate(net, 15, dataset='mnist', path='../data', device=torch.device("cpu"))
