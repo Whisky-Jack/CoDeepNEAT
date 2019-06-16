@@ -1,9 +1,7 @@
 from src.Graph.Node import Node
 import torch.nn as nn
-import torch
 
 from src.Learner.Layers import MergeSum, SequentialMemory
-import math
 
 
 class ModuleNode(Node):
@@ -31,8 +29,8 @@ class ModuleNode(Node):
 
     def createLayers(self, inChannels=None, outChannels=20):
         self.outFeatures = outChannels
-        if (self.deepLayer is None):
-            if (inChannels is None):
+        if self.deepLayer is None:
+            if inChannels is None:
                 self.inFeatures = self.parents[0].outFeatures  # only aggregator nodes should have more than one parent
             else:
                 self.inFeatures = inChannels
@@ -45,8 +43,8 @@ class ModuleNode(Node):
             for child in self.children:
                 child.createLayers()
 
-    def insertAggregatorNodes(self,
-                              state="start"):  # could be made more efficient as a breadth first instead of depth first because of duplicate paths
+    # could be made more efficient as a breadth first instead of depth first because of duplicate paths
+    def insertAggregatorNodes(self, state="start"):
         from src.Module.AggregatorNode import AggregatorNode as Aggregator
         """
         *NB  -- must have called getTraversalIDs on root node to use this function
@@ -54,7 +52,7 @@ class ModuleNode(Node):
         which are module nodes which take multiple inputs and combine them
         """
 
-        if (state == "start"):  # method is called from the root node - but must be traversed from the output node
+        if state == "start":  # method is called from the root node - but must be traversed from the output node
             outputNode = self.getOutputNode()
             outputNode.insertAggregatorNodes("fromTop")
             return
@@ -80,10 +78,10 @@ class ModuleNode(Node):
             for previousParent in aggregator.parents:
                 previousParent.insertAggregatorNodes("fromTop")
 
-        elif (numParents == 1):
+        elif numParents == 1:
             self.parents[0].insertAggregatorNodes("fromTop")
 
-        if (self.isOutputNode()):
+        if self.isOutputNode():
             self.getInputNode().getTraversalIDs('_')
 
     def passANNInputUpGraph(self, input, parentID=""):
@@ -105,14 +103,14 @@ class ModuleNode(Node):
             # if (input is None):
             #     print("passing output to child:",child)
             co = child.passANNInputUpGraph(output, self.traversalID)
-            if (not co is None):
+            if co is not None:
                 childOut = co
 
-        if (not childOut is None):
+        if childOut is not None:
             # print("bubbling up output nodes output:", childOut.size())
             return childOut
 
-        if (self.isOutputNode()):
+        if self.isOutputNode():
             # print("output node returning output:",output)
             return output  # output of final output node must be bubbled back up to the top entry point of the nn
 
@@ -122,20 +120,20 @@ class ModuleNode(Node):
         return self.deepLayer(input)
 
     def getParameters(self, parametersDict):
-        if (not self in parametersDict):
+        if self not in parametersDict:
             myParams = self.deepLayer.parameters()
             parametersDict[self] = myParams
 
             for child in self.children:
                 child.getParameters(parametersDict)
 
-            if (self.isInputNode()):
+            if self.isInputNode():
                 # print("input node params: ", parametersDict)
 
                 params = None
                 for param in parametersDict.values():
 
-                    if (params is None):
+                    if params is None:
                         params = list(param)
                     else:
                         params += list(param)
@@ -143,7 +141,7 @@ class ModuleNode(Node):
 
     def printNode(self, printToConsole=True):
         out = " " * (len(self.traversalID)) + self.traversalID
-        if (printToConsole):
+        if printToConsole:
             print(out)
         else:
             return out
@@ -154,8 +152,8 @@ class ModuleNode(Node):
         # print(torch.cumprod(self.deepLayer.shape()))
         return 10 * 10 * self.deepLayer.out_channels  # 10*10 because by the time the 28*28 has gone through all the convs - it has been reduced to 10810
 
-    def getOutFeatures(self, deepLayer=None):
-        if (deepLayer is None):
+    def getOutFeatures(self, deepLayer=None):  # why is this param here? We want to check this node's deepLayer
+        if deepLayer is None:
             deepLayer = self.deepLayer
 
         if type(deepLayer) == nn.Conv2d:
@@ -168,18 +166,23 @@ class ModuleNode(Node):
 
         return numFeatures
 
-    # should start by being called on the output node
     def to_nn(self):
+        """
+        Parses a CDN module to a pytorch nn.Module
+        Must be called on the output node to fully parse the module
+
+        :return: nn.Module representing this CDN module
+        """
         # list of all the parents as nn.Modules
         input_layers = nn.ModuleList([parent.to_nn() for parent in self.parents])
 
         if self.isInputNode():
             return self.combined
 
-        # if not input then your input is the merge of your parents outputs
-        return nn.Sequential(self.squash(input_layers, self.deepLayer), self.combined)
+        # if not input node then a node's input is the merge of its parents outputs
+        return nn.Sequential(self.intelligent_merge(input_layers, self.deepLayer), self.combined)
 
-    def squash(self, parents, child):
+    def intelligent_merge(self, parents, child):
         """Chooses correct type of merge for all parents to output for a single child"""
         # TODO choose merge type depending on parent and child dims
         if len(parents) == 1:

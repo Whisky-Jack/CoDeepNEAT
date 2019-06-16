@@ -1,4 +1,4 @@
-"""Custom layers that need to be added to an instance of Net"""
+"""Custom layers"""
 
 from torch import nn, cat
 import torch
@@ -41,7 +41,6 @@ class MergeSum(Merge):
 
     def forward(self, input):
         if self.memory is not None:
-            print('reusing memory:', self.memory)
             return self.memory
 
         res = [y(input) for y in self.childs]
@@ -57,7 +56,6 @@ class MergeCat(Merge):
 
     def forward(self, input):
         if self.memory is not None:
-            print('reusing memory:', self.memory)
             return self.memory
 
         res = [y(input) for y in self.childs]
@@ -74,7 +72,6 @@ class SequentialMemory(HiddenMemory):
 
     def forward(self, input):
         if self.memory is not None:
-            print('reusing memory:', self.memory)
             return self.memory
 
         self.memory = self.model(input)
