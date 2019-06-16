@@ -2,7 +2,7 @@ from src.Graph.Node import Node
 import torch.nn as nn
 import torch
 
-from src.Learner.Layers import MergeSum, SequentialJoin
+from src.Learner.Layers import MergeSum, SequentialMemory
 import math
 
 
@@ -22,12 +22,12 @@ class ModuleNode(Node):
     def __init__(self):
         Node.__init__(self)
         self.deepLayer = None  # an nn layer object such as    nn.Conv2d(3, 6, 5) or nn.Linear(84, 10)
-        # self.activation = nn.ReLU  # should we have an activation here?
+        self.activation = nn.ReLU()  # should we have an activation here?
         self.inFeatures = -1
         self.outFeatures = -1
         self.traversalID = ""
 
-        self.parentLayers = None
+        self.combined = None
 
     def createLayers(self, inChannels=None, outChannels=20):
         self.outFeatures = outChannels
@@ -36,7 +36,11 @@ class ModuleNode(Node):
                 self.inFeatures = self.parents[0].outFeatures  # only aggregator nodes should have more than one parent
             else:
                 self.inFeatures = inChannels
-            self.deepLayer = nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1)
+
+            self.deepLayer = nn.Linear(5, 5)  # nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1)
+            self.deepLayer.weight.data.fill_(0.2341)
+            self.deepLayer.bias.data.fill_(0.341)
+            self.combined = SequentialMemory(self.deepLayer, self.activation)
 
             for child in self.children:
                 child.createLayers()
@@ -47,7 +51,8 @@ class ModuleNode(Node):
         """
         *NB  -- must have called getTraversalIDs on root node to use this function
         traverses the module graph from the input up to output, and inserts aggregators
-        which are module nodes which take multiple inputs and combine them"""
+        which are module nodes which take multiple inputs and combine them
+        """
 
         if (state == "start"):  # method is called from the root node - but must be traversed from the output node
             outputNode = self.getOutputNode()
@@ -82,10 +87,11 @@ class ModuleNode(Node):
             self.getInputNode().getTraversalIDs('_')
 
     def passANNInputUpGraph(self, input, parentID=""):
-        """called by the forward method of the NN - traverses the module graph
-            passes the nn's input all the way up through the graph
-            aggregator nodes wait for all inputs before passing outputs
-            """
+        """
+        called by the forward method of the NN - traverses the module graph
+        passes the nn's input all the way up through the graph
+        aggregator nodes wait for all inputs before passing outputs
+        """
 
         # if(self.isOutputNode()):
         #     print("final node received input:", input)
@@ -155,7 +161,7 @@ class ModuleNode(Node):
         if type(deepLayer) == nn.Conv2d:
             numFeatures = deepLayer.out_channels
         elif type(deepLayer) == nn.Linear:
-            numFeatures = deepLayer.deepLayer.out_features
+            numFeatures = deepLayer.out_features
         else:
             print("cannot extract num features from layer type:", type(deepLayer))
             return None
@@ -165,21 +171,19 @@ class ModuleNode(Node):
     # should start by being called on the output node
     def to_nn(self):
         # list of all the parents as nn.Modules
-        parent_layers = nn.ModuleList([parent.to_nn() for parent in self.parents])
+        input_layers = nn.ModuleList([parent.to_nn() for parent in self.parents])
 
-        if len(parent_layers) == 1:  # only a single parent
-            print('single')
-            return SequentialJoin([parent_layers[0], self.deepLayer])  # activation?
+        if self.isInputNode():
+            return self.combined
 
-        # Multiple parents
-        if len(parent_layers) > 2:
-            print('joining')
-            return self.squash(parent_layers, self.deepLayer)
-
-        # input node (base case)
-        return parent_layers
+        # if not input then your input is the merge of your parents outputs
+        return nn.Sequential(self.squash(input_layers, self.deepLayer), self.combined)
 
     def squash(self, parents, child):
         """Chooses correct type of merge for all parents to output for a single child"""
         # TODO choose merge type depending on parent and child dims
+        if len(parents) == 1:
+            return parents[0]
+
+        # perform padding before
         return MergeSum(parents)
