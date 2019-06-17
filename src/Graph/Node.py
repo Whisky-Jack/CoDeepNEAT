@@ -82,7 +82,7 @@ class Node:
     def printNode(self, printToConsole=True):
         pass
 
-    def plotTree(self, nodesPlotted, rotDegree=0):
+    def plotTree(self, nodesPlotted=set(), rotDegree=0):
         arrowScaleFactor = 1
 
         y = len(self.traversalID)

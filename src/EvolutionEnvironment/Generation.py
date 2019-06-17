@@ -6,7 +6,7 @@ import torch
 import math
 
 import torch.nn as nn
-from src.Learner import Evaluator
+from src.Learner import Evaluator, Net, Layers
 import torch.tensor
 
 
@@ -30,7 +30,7 @@ class Generation:
         print("initialising random population")
 
         for b in range(self.numBlueprints):
-            blueprint = Node.genNodeGraph(BlueprintNode, "linear")
+            blueprint = Node.genNodeGraph(BlueprintNode, "single")
             self.blueprintCollection.add(blueprint)
 
         species = Species()
@@ -47,16 +47,21 @@ class Generation:
         for blueprint in self.blueprintCollection:
             print("parsing blueprint to module")
 
-            x = torch.randn(1, 5)
+            x = torch.randn(1, 8)
 
             moduleGraph = blueprint.parseToModule(self)
             moduleGraph.createLayers(inChannels=1)
-            net = moduleGraph.getOutputNode().to_nn()
+            net = Net.BlueprintNet(nn.Sequential(moduleGraph.getOutputNode().to_nn(),
+                                                 Layers.Reshape(-1, 20),
+                                                 nn.Linear(20, 500),
+                                                 nn.ReLU(),
+                                                 nn.Linear(500, 10),
+                                                 nn.ReLU(),
+                                                 )).cuda()
 
+            # moduleGraph.plotTree()
             print(net)
-
-            print(x)
-            print('my net:', net(x))
+            Evaluator.evaluate(net, 10)
 
             # moduleGraph1 = blueprint.parseToModule(self)
             # moduleGraph1.createLayers(inChannels=1)

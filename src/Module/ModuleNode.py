@@ -1,7 +1,7 @@
 from src.Graph.Node import Node
 import torch.nn as nn
 
-from src.Learner.Layers import MergeSum, SequentialMemory
+from src.Learner.Layers import MergeSum, MergeCat, SequentialMemory
 
 
 class ModuleNode(Node):
@@ -27,7 +27,8 @@ class ModuleNode(Node):
 
         self.combined = None
 
-    def createLayers(self, inChannels=None, outChannels=20):
+    # Why is this not just the constructor?
+    def createLayers(self, inChannels=None, outChannels=20, debug=False):
         self.outFeatures = outChannels
         if self.deepLayer is None:
             if inChannels is None:
@@ -35,13 +36,20 @@ class ModuleNode(Node):
             else:
                 self.inFeatures = inChannels
 
-            self.deepLayer = nn.Linear(5, 5)  # nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1)
-            self.deepLayer.weight.data.fill_(0.2341)
-            self.deepLayer.bias.data.fill_(0.341)
-            self.combined = SequentialMemory(self.deepLayer, self.activation)
+            # Maybe just pass the entire layer and activation in?
+            self.deepLayer = nn.Conv2d(self.inFeatures, self.outFeatures, 4, 1)
+            if debug:
+                self.deepLayer.weight.data.fill_(0.2341)
+                self.deepLayer.bias.data.fill_(0.341)
+
+            # Don't need memory if there is only 1 child
+            if len(self.children) > 1:
+                self.combined = nn.Sequential(self.deepLayer, self.activation, nn.MaxPool2d(2, 2))
+            else:
+                self.combined = nn.Sequential(self.deepLayer, self.activation, nn.MaxPool2d(2, 2))
 
             for child in self.children:
-                child.createLayers()
+                child.createLayers(inChannels=outChannels)
 
     # could be made more efficient as a breadth first instead of depth first because of duplicate paths
     def insertAggregatorNodes(self, state="start"):
