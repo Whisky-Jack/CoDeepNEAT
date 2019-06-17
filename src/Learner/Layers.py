@@ -33,7 +33,7 @@ class Flatten(nn.Module):
 
 
 # This is a base class should never be called direct because it doesn't have a forward method
-class Merge(HiddenMemory):
+class Merge(nn.Module):
     def __init__(self, children):
         super(Merge, self).__init__()
         if len(children) < 2:
@@ -49,13 +49,13 @@ class MergeSum(Merge):
         super(MergeSum, self).__init__(children)
 
     def forward(self, input):
-        if self.memory is not None:
-            return self.memory
+        # if self.memory is not None:
+        #     return self.memory
 
         res = [y(input) for y in self.childs]
         joined = torch.sum(torch.stack(res), dim=0)  # TODO how to choose the dim!?
 
-        self.memory = joined
+        # self.memory = joined
         return joined
 
 
@@ -66,9 +66,8 @@ class MergeCat(Merge):
     def forward(self, input):
         # if self.memory is not None:
         #     return self.memory
-
         res = [y(input) for y in self.childs]
-        joined = cat(res, dim=0)  # TODO how to choose the dim!?
+        joined = cat(res, dim=1)  # TODO how to choose the dim!?
 
         # self.memory = joined
         return joined

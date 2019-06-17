@@ -41,6 +41,12 @@ class Generation:
     def generateFromPreviousGeneration(self, previousGen):
         pass
 
+    def print_children(self, net):
+        for n in net.children():
+            self.print_children(n)
+
+        print('an item:', net)
+
     def evaluate(self):
         print("evaluating blueprints")
 
@@ -50,17 +56,20 @@ class Generation:
             x = torch.randn(1, 8)
 
             moduleGraph = blueprint.parseToModule(self)
-            moduleGraph.createLayers(inChannels=1)
+            moduleGraph.createLayers(inFeatures=1)
             net = Net.BlueprintNet(nn.Sequential(moduleGraph.getOutputNode().to_nn(),
-                                                 Layers.Reshape(-1, 20),
-                                                 nn.Linear(20, 500),
+                                                 Layers.Reshape(64, -1),
+                                                 nn.Linear(500, 500),
                                                  nn.ReLU(),
                                                  nn.Linear(500, 10),
                                                  nn.ReLU(),
+                                                 nn.LogSoftmax(dim=1)
                                                  )).cuda()
 
             # moduleGraph.plotTree()
             print(net)
+            # self.print_children(net)
+
             Evaluator.evaluate(net, 10)
 
             # moduleGraph1 = blueprint.parseToModule(self)

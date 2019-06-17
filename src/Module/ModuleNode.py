@@ -1,8 +1,10 @@
+import random
+
 from src.Graph.Node import Node
 import torch.nn as nn
 
 from src.Learner.Layers import MergeSum, MergeCat, SequentialMemory
-
+from src.Learner.Net import BlueprintNet
 
 class ModuleNode(Node):
     """
@@ -28,16 +30,16 @@ class ModuleNode(Node):
         self.combined = None
 
     # Why is this not just the constructor?
-    def createLayers(self, inChannels=None, outChannels=20, debug=False):
-        self.outFeatures = outChannels
+    def createLayers(self, inFeatures=None, outFeatures=20, debug=False):
+        self.outFeatures = outFeatures
         if self.deepLayer is None:
-            if inChannels is None:
+            if inFeatures is None:
                 self.inFeatures = self.parents[0].outFeatures  # only aggregator nodes should have more than one parent
             else:
-                self.inFeatures = inChannels
+                self.inFeatures = inFeatures
 
             # Maybe just pass the entire layer and activation in?
-            self.deepLayer = nn.Conv2d(self.inFeatures, self.outFeatures, 4, 1)
+            self.deepLayer = nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1)
             if debug:
                 self.deepLayer.weight.data.fill_(0.2341)
                 self.deepLayer.bias.data.fill_(0.341)
@@ -48,8 +50,11 @@ class ModuleNode(Node):
             else:
                 self.combined = nn.Sequential(self.deepLayer, self.activation, nn.MaxPool2d(2, 2))
 
+            # if random.randint(0, 1) == 0:
+            #     self.combined.add_module('batch_norm-' + str(self.traversalID), nn.BatchNorm2d(outFeatures))
+
             for child in self.children:
-                child.createLayers(inChannels=outChannels)
+                child.createLayers()
 
     # could be made more efficient as a breadth first instead of depth first because of duplicate paths
     def insertAggregatorNodes(self, state="start"):
@@ -184,15 +189,23 @@ class ModuleNode(Node):
         # list of all the parents as nn.Modules
         input_layers = nn.ModuleList([parent.to_nn() for parent in self.parents])
 
+        comb = (nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1), nn.ReLU(), nn.MaxPool2d(2, 2))
+
         if self.isInputNode():
-            return self.combined
+            return nn.Sequential(*comb)  # self.combined
 
         # if not input node then a node's input is the merge of its parents outputs
-        return nn.Sequential(self.intelligent_merge(input_layers, self.deepLayer), self.combined)
+        # return nn.Sequential(self.intelligent_merge(input_layers, self.deepLayer), comb)  # self.combined
+        merged = self.intelligent_merge(input_layers, self.deepLayer)
+        merged.add_module('conv2d ' + str(self.traversalID), comb[0])
+        merged.add_module('relu ' + str(self.traversalID), comb[1])
+        merged.add_module('maxp ' + str(self.traversalID), comb[2])
+        return merged
 
     def intelligent_merge(self, parents, child):
         """Chooses correct type of merge for all parents to output for a single child"""
         # TODO choose merge type depending on parent and child dims
+        print('n parents: ', len(parents))
         if len(parents) == 1:
             return parents[0]
 
