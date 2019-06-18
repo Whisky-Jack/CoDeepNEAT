@@ -65,13 +65,13 @@ class Node:
 
     def hasSiblings(self):
         for parent in self.parents:
-            if (len(parent.children) > 1):
+            if len(parent.children) > 1:
                 return True
 
         return False
 
     def printTree(self, nodesPrinted=set()):
-        if (self in nodesPrinted):
+        if self in nodesPrinted:
             return
         nodesPrinted.add(self)
         self.printNode()
@@ -96,7 +96,7 @@ class Node:
         x = x * math.cos(rotDegree) - y * math.sin(rotDegree)
         y = y * math.cos(rotDegree) + x * math.sin(rotDegree)
 
-        if (self in nodesPlotted):
+        if self in nodesPlotted:
             return x, y
 
         nodesPlotted.add(self)
@@ -113,7 +113,7 @@ class Node:
                 # print("plotting from:",(x,y),"to",(cx,cy))
             # print(child.plotTree(nodesPlotted,xs,ys))
 
-        if (self.isInputNode()):
+        if self.isInputNode():
             plt.show()
 
         return x, y
@@ -149,25 +149,25 @@ class Node:
 
 def genNodeGraph(nodeType, graphType="diamond", linearCount=3):
     """the basic starting points of both blueprints and modules"""
-    input = nodeType()
+    inp = nodeType()
 
-    if (graphType == "linear"):
-        input.addChild(nodeType())
-        input.children[0].addChild(nodeType())
+    if graphType == "linear":
+        inp.addChild(nodeType())
+        inp.children[0].addChild(nodeType())
 
-    if (graphType == "diamond"):
-        input.addChild(nodeType())
-        input.addChild(nodeType())
-        input.children[0].addChild(nodeType())
-        input.children[1].addChild(input.children[0].children[0])
+    if graphType == "diamond":
+        inp.addChild(nodeType())
+        inp.addChild(nodeType())
+        inp.children[0].addChild(nodeType())
+        inp.children[1].addChild(inp.children[0].children[0])
 
-    if (graphType == "triangle"):
+    if graphType == "triangle":
         """feeds input node to a child and straight to output node"""
-        input.addChild(nodeType())
-        input.children[0].addChild(nodeType())
-        input.addChild(input.children[0].children[0])
+        inp.addChild(nodeType())
+        inp.children[0].addChild(nodeType())
+        inp.addChild(inp.children[0].children[0])
 
-    if (graphType == "single"):
+    if graphType == "single":
         pass
 
-    return input
+    return inp

@@ -53,6 +53,10 @@ class MergeSum(Merge):
         #     return self.memory
 
         res = [y(input) for y in self.childs]
+
+        for y in res:
+            print('Shape', y.shape)
+
         joined = torch.sum(torch.stack(res), dim=0)  # TODO how to choose the dim!?
 
         # self.memory = joined
