@@ -82,7 +82,10 @@ class Node:
     def printNode(self, printToConsole=True):
         pass
 
-    def plotTree(self, nodesPlotted=set(), rotDegree=0):
+    def plotTree(self, nodesPlotted=None, rotDegree=0):
+        if nodesPlotted is None:
+            nodesPlotted = set()
+
         arrowScaleFactor = 1
 
         y = len(self.traversalID)
@@ -152,8 +155,10 @@ def genNodeGraph(nodeType, graphType="diamond", linearCount=3):
     inp = nodeType()
 
     if graphType == "linear":
-        inp.addChild(nodeType())
-        inp.children[0].addChild(nodeType())
+        curr = inp
+        for _ in range(linearCount - 1):
+            curr.addChild(nodeType())
+            curr = curr.children[0]
 
     if graphType == "diamond":
         inp.addChild(nodeType())

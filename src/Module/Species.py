@@ -5,8 +5,8 @@ import copy
 
 speciesCounter = 0
 
-class Species:
 
+class Species:
     """
     species contains a list of module input nodes
     """
@@ -18,17 +18,16 @@ class Species:
         global speciesCounter
         self.moduleCollection = []
         self.speciesNumber = speciesCounter
-        speciesCounter +=1
-        
+        speciesCounter += 1
 
     def sampleModule(self):
-        index = randint(0,len(self.moduleCollection)-1)
-        #print(len(self.moduleCollection), index)
+        index = randint(0, len(self.moduleCollection) - 1)
+        # print(len(self.moduleCollection), index)
         return copy.deepcopy(self.moduleCollection[index]), index
-    
+
     def initialiseModules(self, numModules):
         print("initialising modules")
-        
+
         for m in range(numModules):
             module = Node.genNodeGraph(ModuleNode, "diamond")
             self.moduleCollection.append(module)

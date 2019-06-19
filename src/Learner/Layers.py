@@ -4,6 +4,19 @@ from torch import nn, cat
 import torch
 
 
+class DebugWrapper(nn.Module):
+    def __init__(self, model):
+        super(DebugWrapper, self).__init__()
+        self.model = model
+
+    def forward(self, input):
+        print('in shape:', input.size())
+        print('type:', type(self.model))
+        input = self.model(input)
+        print('out shape:', input.size(), end='\n\n')
+        return input
+
+
 class HiddenMemory(nn.Module):
     def __init__(self):
         super(HiddenMemory, self).__init__()
@@ -51,6 +64,10 @@ class MergeSum(Merge):
     def forward(self, input):
         # if self.memory is not None:
         #     return self.memory
+        # print(self.childs)
+        # for y in self.childs:
+        #     print('type:', type(y))
+        #     print(y)
 
         res = [y(input) for y in self.childs]
         joined = torch.sum(torch.stack(res), dim=0)  # TODO how to choose the dim!?
@@ -68,7 +85,6 @@ class MergeCat(Merge):
         #     return self.memory
         res = [y(input) for y in self.childs]
         joined = cat(res, dim=1)  # TODO how to choose the dim!?
-
         # self.memory = joined
         return joined
 

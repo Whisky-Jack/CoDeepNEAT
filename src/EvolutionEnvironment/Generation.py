@@ -1,8 +1,9 @@
+import torch
+
 from src.Module.Species import Species
 from src.Blueprint.Blueprint import BlueprintNode
 from src.Graph import Node
 from src.Learner import Evaluator, Net, Layers
-
 
 import torch.nn as nn
 
@@ -27,7 +28,7 @@ class Generation:
         print("initialising random population")
 
         for b in range(self.numBlueprints):
-            blueprint = Node.genNodeGraph(BlueprintNode, "triangle")
+            blueprint = Node.genNodeGraph(BlueprintNode, "linear", linearCount=3)
             self.blueprintCollection.add(blueprint)
 
         species = Species()
@@ -44,18 +45,21 @@ class Generation:
         for blueprint in self.blueprintCollection:
             print("parsing blueprint to module")
 
+            batch_size = 64
+            lin_size = int(3276800 / batch_size)
+
             moduleGraph = blueprint.parseToModule(self)
             moduleGraph.createLayers(inFeatures=1)
             net = Net.BlueprintNet(nn.Sequential(moduleGraph.getOutputNode().to_nn(),
-                                                 Layers.Reshape(64, -1),
-                                                 nn.Linear(500, 500),
+                                                 Layers.Reshape(-1, lin_size),
+                                                 nn.Linear(lin_size, 500),
                                                  nn.ReLU(),
                                                  nn.Linear(500, 10),
-                                                 nn.ReLU(),
                                                  nn.LogSoftmax(dim=1)
                                                  )).cuda()
 
             # moduleGraph.plotTree()
             print('Generated network:\n', net)
+            torch.manual_seed(1)
 
-            Evaluator.evaluate(net, 10)
+            Evaluator.evaluate(net, 10, batch_size=batch_size)

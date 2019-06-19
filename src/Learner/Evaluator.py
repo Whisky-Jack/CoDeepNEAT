@@ -26,7 +26,6 @@ def train(model, device, train_loader, epoch, test_loader):
     # print("training network on device:",device)
     s = time.time()
     loss = 0
-    batchNo = 0
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         inputs, targets = inputs.to(device), targets.to(device)
         model.optimizer.zero_grad()
@@ -37,8 +36,8 @@ def train(model, device, train_loader, epoch, test_loader):
         # first forward pass of this new network
         # print("configuring network dims")
         # model.specifyOutputDimensionality(inputs)
-
         output = model(inputs)
+
         # print("out shape:", output.size(), "target shape:", targets.size())
         m_loss = model.loss_fn(output, targets)
         m_loss.backward(retain_graph=False)
@@ -46,12 +45,12 @@ def train(model, device, train_loader, epoch, test_loader):
 
         loss += m_loss
 
-        if batchNo % printBatchEvery == 0 and not printBatchEvery == -1:
-            print("epoch:", epoch, "batch:", batchNo, "loss:", m_loss.item())
-        batchNo += 1
+        if batch_idx % printBatchEvery == 0 and not printBatchEvery == -1:
+            print("epoch:", epoch, "batch:", batch_idx, "loss:", m_loss.item())
+        batch_idx += 1
 
     if epoch % printEpochEvery == 0:
-        print("epoch", epoch, "average loss:", loss.item() / batchNo, "accuracy:",
+        print("epoch", epoch, "average loss:", loss.item() / batch_idx, "accuracy:",
               test(model, device, test_loader, printAcc=False), "time for epoch:", (time.time() - s))
 
 
@@ -87,7 +86,8 @@ def test(model, device, test_loader, printAcc=True):
         return 100. * correct / len(test_loader.dataset)
 
 
-def evaluate(model, epochs, dataset='mnist', path='../../data', device=torch.device('cuda:0'), timer=False):
+def evaluate(model, epochs, dataset='mnist', path='../../data', device=torch.device('cuda:0'), timer=False,
+             batch_size=64):
     """
     Runs all epochs and tests the model after all epochs have run
 
@@ -113,7 +113,7 @@ def evaluate(model, epochs, dataset='mnist', path='../../data', device=torch.dev
                                transforms.ToTensor(),
                                transforms.Normalize((0.1307,), (0.3081,))
                            ])),
-            batch_size=64, drop_last=True, shuffle=True, **data_loader_args)
+            batch_size=batch_size, drop_last=True, shuffle=True, **data_loader_args)
 
         test_loader = DataLoader(
             datasets.MNIST(path,
@@ -123,7 +123,7 @@ def evaluate(model, epochs, dataset='mnist', path='../../data', device=torch.dev
                                transforms.ToTensor(),
                                transforms.Normalize((0.1307,), (0.3081,))
                            ])),
-            batch_size=64, drop_last=True, shuffle=True, **data_loader_args)
+            batch_size=batch_size, drop_last=True, shuffle=True, **data_loader_args)
 
     elif dataset.lower() == 'imgnet':
         train_loader = DataLoader(

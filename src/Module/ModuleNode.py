@@ -3,7 +3,7 @@ import random
 from src.Graph.Node import Node
 import torch.nn as nn
 
-from src.Learner.Layers import MergeSum, MergeCat, SequentialMemory
+from src.Learner.Layers import MergeSum, MergeCat, DebugWrapper
 from src.Learner.Net import BlueprintNet
 
 
@@ -31,7 +31,7 @@ class ModuleNode(Node):
         self.combined = None
 
     # Why is this not just the constructor?
-    def createLayers(self, inFeatures=None, outFeatures=20, debug=False):
+    def createLayers(self, inFeatures=None, outFeatures=512, debug=False):
         self.outFeatures = outFeatures
         if self.deepLayer is None:
             if inFeatures is None:
@@ -39,13 +39,12 @@ class ModuleNode(Node):
             else:
                 self.inFeatures = inFeatures
 
-            # Maybe just pass the entire layer and activation in?
-            self.deepLayer = nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1)
+            self.deepLayer = nn.Conv2d(self.inFeatures, self.outFeatures, 3, 1, padding=False)
             if debug:
                 self.deepLayer.weight.data.fill_(0.2341)
                 self.deepLayer.bias.data.fill_(0.341)
 
-            self.combined = [self.deepLayer, self.activation, nn.MaxPool2d(2, 2)]
+            self.combined = [self.deepLayer, self.activation]  # [self.deepLayer, self.activation, nn.MaxPool2d(2, 2)]
 
             # if random.randint(0, 1) == 0:
             #     self.combined.add_module('batch_norm-' + str(self.traversalID), nn.BatchNorm2d(outFeatures))
@@ -192,19 +191,7 @@ class ModuleNode(Node):
             return nn.Sequential(*self.combined)  # self.combined
 
         # if not input node then a node's input is the merge of its parents outputs
-        merged = self.intelligent_merge(input_layers, self.deepLayer)
-
-        # finding the largest integer key in the module map
-        key = 0
-        for name, _ in merged.named_children():
-            if name.isdigit() and int(name) > key:
-                key = int(name)
-
-        for i, layer in enumerate(self.combined, 1):
-            merged.add_module(str(i + key), layer)
-
-        # return nn.Sequential(self.intelligent_merge(input_layers, self.deepLayer), self.combined)
-        return merged
+        return nn.Sequential(self.intelligent_merge(input_layers, self.deepLayer), *self.combined)
 
     def intelligent_merge(self, parents, child):
         """Chooses correct type of merge for all parents to output for a single child"""
