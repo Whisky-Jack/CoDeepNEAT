@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch.optim as optim
 
+from src.Learner.Layers import Memory
+
 
 class Net(nn.Module):
     def __init__(self, layers, lr=0.001, beta1=0.9, beta2=0.999, loss_fn=nn.MSELoss()):
@@ -25,6 +27,17 @@ class BlueprintNet(nn.Module):
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr, betas=(beta1, beta2))
 
         # print('Created network with architecture:', self.model, sep='\n')
+
+    def free_memory(self, module=None):
+        # start point is this node
+        if module is None:
+            module = self
+
+        for _, layer in module.named_children():
+            if isinstance(layer, Memory):
+                layer.forget()
+
+            self.free_memory(layer)
 
     def forward(self, input):
         return self.model(input)

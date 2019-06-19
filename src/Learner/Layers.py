@@ -3,15 +3,25 @@
 from torch import nn, cat
 import torch
 
+from src.Learner.Evaluator import memory as mem
 
-class HiddenMemory(nn.Module):
-    def __init__(self):
-        super(HiddenMemory, self).__init__()
-        self.memory = None
+
+class Memory(nn.Module):
+    def __init__(self, model, id):
+        super(Memory, self).__init__()
+        self.id = id
+        self.model = model
+
+    def forget(self):
+        if self.id in mem:
+            del mem[self.id]
 
     def forward(self, input):
-        if self.memory is not None:
-            return self.memory
+        if self.id in mem:
+            return mem[self.id]
+
+        mem[self.id] = self.model(input)
+        return mem[self.id]
 
 
 class Reshape(nn.Module):
@@ -73,7 +83,7 @@ class MergeCat(Merge):
         return joined
 
 
-class SequentialMemory(HiddenMemory):
+class SequentialMemory(Memory):
     def __init__(self, *layers):
         super(SequentialMemory, self).__init__()
         self.model = nn.Sequential(*layers)

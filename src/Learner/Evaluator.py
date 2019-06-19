@@ -11,6 +11,8 @@ import time
 printBatchEvery = 50  # -1 to switch off batch printing
 printEpochEvery = 1
 
+memory = {}
+
 
 def train(model, device, train_loader, epoch, test_loader):
     """
@@ -41,8 +43,9 @@ def train(model, device, train_loader, epoch, test_loader):
         output = model(inputs)
         # print("out shape:", output.size(), "target shape:", targets.size())
         m_loss = model.loss_fn(output, targets)
-        m_loss.backward(retain_graph=False)
+        m_loss.backward(retain_graph=True)
         model.optimizer.step()
+        model.free_memory()
 
         loss += m_loss
 

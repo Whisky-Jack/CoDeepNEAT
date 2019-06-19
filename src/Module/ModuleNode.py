@@ -3,7 +3,7 @@ import random
 from src.Graph.Node import Node
 import torch.nn as nn
 
-from src.Learner.Layers import MergeSum, MergeCat, SequentialMemory
+from src.Learner.Layers import MergeSum, MergeCat, SequentialMemory, Memory
 from src.Learner.Net import BlueprintNet
 
 
@@ -46,7 +46,9 @@ class ModuleNode(Node):
                 self.deepLayer.bias.data.fill_(0.341)
 
             self.combined = [self.deepLayer, self.activation, nn.MaxPool2d(2, 2)]
-
+            if len(self.children) > 1:
+                print(self.traversalID, 'in memory')
+                self.combined = [Memory(nn.Sequential(*self.combined), self.traversalID)]
             # if random.randint(0, 1) == 0:
             #     self.combined.add_module('batch_norm-' + str(self.traversalID), nn.BatchNorm2d(outFeatures))
 

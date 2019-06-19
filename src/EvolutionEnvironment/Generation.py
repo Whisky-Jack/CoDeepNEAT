@@ -3,7 +3,6 @@ from src.Blueprint.Blueprint import BlueprintNode
 from src.Graph import Node
 from src.Learner import Evaluator, Net, Layers
 
-
 import torch.nn as nn
 
 
@@ -27,7 +26,7 @@ class Generation:
         print("initialising random population")
 
         for b in range(self.numBlueprints):
-            blueprint = Node.genNodeGraph(BlueprintNode, "triangle")
+            blueprint = Node.genNodeGraph(BlueprintNode, "single")
             self.blueprintCollection.add(blueprint)
 
         species = Species()
@@ -37,6 +36,14 @@ class Generation:
 
     def generateFromPreviousGeneration(self, previousGen):
         pass
+
+    def countKids(self, net):
+        cnt = 0
+        for _, layer in net.named_children():
+            cnt += 1
+            self.countKids(layer)
+
+        print(cnt)
 
     def evaluate(self):
         print("evaluating blueprints")
@@ -58,4 +65,5 @@ class Generation:
             # moduleGraph.plotTree()
             print('Generated network:\n', net)
 
+            # self.countKids(net)
             Evaluator.evaluate(net, 10)
