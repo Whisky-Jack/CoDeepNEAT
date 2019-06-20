@@ -107,7 +107,7 @@ class AggregatorNode(Module):
 
     def getPlotColour(self):
         #print("plotting agg node")
-        return 'bo'
+        return 'b^'
 
     def mergeConvLayerOutputs(self, numFeatures, newNumFeatures, input, inputs):
         #print("merging two diff conv tensors")

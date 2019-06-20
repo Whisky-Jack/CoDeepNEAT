@@ -170,6 +170,15 @@ class ModuleNode(Node):
         else:
             return out
 
+    def getPlotColour(self):
+        #print("plotting agg node")
+        if(self.deepLayer is None):
+            return "rs"
+        if(type(self.deepLayer) == nn.Conv2d):
+            return "go"
+        elif(type(self.deepLayer) == nn.Linear):
+            return ""
+
     def getDimensionality(self):
         print("need to implement get dimensionality")
         #print(torch.cumprod(self.deepLayer.shape()))

@@ -31,12 +31,8 @@ def train(model, device, train_loader, epoch, test_loader, printAccuracy = False
         inputs, targets = inputs.to(device), targets.to(device)
         model.optimizer.zero_grad()
         # compute loss without variables to avoid copying from gpu to cpu
-        #print(targets)
         #print("input shape:", inputs.size())
-        if(not model.dimensionalityConfigured):
-            #first forward pass of this new network
-            #print("configuring network dims")
-            model.specifyOutputDimensionality(inputs, device = device)
+
 
         output = model(inputs)
         #print("out shape:",output.size(), "target shape:",targets.size())
@@ -117,6 +113,24 @@ def evaluate(model, epochs, dataset='mnist', path='../../data', device=torch.dev
     """
     # Make this params
     # num_workers=1 is giving issues, but 0 runs slower
+    train_loader, test_loader = load_data('mnist','../../data')
+
+    #print("training network")
+    s = time.time()
+    for epoch in range(1, epochs + 1):
+            train(model, device, train_loader, epoch, test_loader)
+    e = time.time()
+
+    print('Took:', e - s, 'seconds')
+    test(model, device, test_loader)
+
+
+def sample_inputs(dataset='mnist', path='../../data', device=torch.device('cuda:0'), batchSize = 64):
+    train_loader, test_loader = load_data('mnist','../../data')
+    for batch_idx, (inputs, targets) in enumerate(train_loader):
+        return inputs, targets
+
+def load_data(dataset, path, device=torch.device('cuda:0'), batchSize = 64):
     data_loader_args = {'num_workers': 0, 'pin_memory': True} if device == 'cuda' else {}
 
     train_loader = None
@@ -153,11 +167,4 @@ def evaluate(model, epochs, dataset='mnist', path='../../data', device=torch.dev
     else:
         raise Exception('Invalid dataset name, options are imgnet or mnist')
 
-    #print("training network")
-    s = time.time()
-    for epoch in range(1, epochs + 1):
-            train(model, device, train_loader, epoch, test_loader)
-    e = time.time()
-
-    print('Took:', e - s, 'seconds')
-    test(model, device, test_loader)
+    return train_loader,test_loader
