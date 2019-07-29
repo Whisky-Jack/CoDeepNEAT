@@ -111,7 +111,7 @@ def test_all_networks(num_epochs, verbose):
     plot_points = []
 
     for network_type in networks:
-        for i in range(6):
+        for i in range(7):
             size = int(math.pow(2,i))
             accuracies = run_model_over_different_batch_numbers(num_epochs,network_type,size, verbose)
             #plot_model_accuracies(accuracies, network_type)
@@ -151,7 +151,7 @@ def run_tests():
     trainloader, testloader = load_data(dataset="cifar10")
     total_batches = len(trainloader)
     #test_max_accuracy_of_networks(num_epochs)
-    test_all_networks(1, True)
+    test_all_networks(20, True)
     test_all_networks(2, False)
 
 
