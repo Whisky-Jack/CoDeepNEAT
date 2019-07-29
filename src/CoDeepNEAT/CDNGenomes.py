@@ -70,7 +70,6 @@ class BlueprintGenome(Genome):
     def get_all_mutagens(self):
         return [self.learning_rate, self.beta1, self.beta2, self.weight_init]
 
-
 class ModuleGenome(Genome):
 
     def __init__(self, connections, nodes):
@@ -99,7 +98,6 @@ class ModuleGenome(Genome):
     def end_step(self):
         super().end_step()
         self.module_node = None
-
 
 class DAGenome(Genome):
     def __init__(self, connections, nodes):

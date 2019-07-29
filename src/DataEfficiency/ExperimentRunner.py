@@ -20,7 +20,7 @@ import torch.optim as optim
 
 
 criterion = nn.CrossEntropyLoss()
-networks = [Net.StandardNet, Net.BatchNormNet, Net.DropOutNet]
+networks = [Net.BatchNormNet, Net.StandardNet, Net.DropOutNet]
 total_batches = None
 
 
@@ -67,27 +67,33 @@ def run_epoch_for_n_batches(model,optimiser, num_batches = -1):
         optimiser.step()
 
 def run_model_over_different_batch_numbers(num_epochs, model_type, size, verbose):
-    num_batches = 1
+    num_batches = math.ceil(total_batches / 10)
     accuracies = []#tuples of (%training_set, %accuracy)
-    for i in range(11):
 
-        if verbose or i == 0:
-            """if summarised - the same model is used to train on each batch subset, on fewer epochs each"""
+    total_trains = num_epochs * total_batches
+    model = model_type(size).to(torch.device("cuda:0"))
+    optimiser = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    for i in range(10):
+
+        if verbose and i > 0:
             model = model_type(size).to(torch.device("cuda:0"))
+            optimiser = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+        elif not verbose:
+            """if summarised - the same model is used to train on each batch subset, on fewer epochs each"""
+            num_epochs = round(total_trains/num_batches)
+            print('num batches:',num_batches, "num epochs:",num_epochs)
 
-        if(model.does_net_have_results_file(verbose)):
+        if model.does_net_have_results_file(verbose):
             print("model",model.get_name(), "already has results saved:", model.get_results(verbose))
             return []
 
-        optimiser = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
         for epoch in range(num_epochs):  # loop over the dataset multiple times
-
             run_epoch_for_n_batches(model,optimiser,num_batches=num_batches)
 
         accuracy = test_model(model)
         training_proportion = 100*num_batches/total_batches
 
-        print(model.get_name(),"num_batches:",num_batches,"/",total_batches,("("+str(round(training_proportion))+"%)"),"acc:",accuracy,"%")
+        print(model.get_name(),("verbose" if verbose else "summarised"),"num_batches:",num_batches,"/",total_batches,("("+str(round(training_proportion))+"%)"),"acc:",accuracy,"%")
 
 
         num_batches += math.ceil(total_batches/10)
@@ -126,7 +132,7 @@ def test_max_accuracy_of_networks(num_epochs):
             accuracy = test_model(model)
             print(model.get_name(),"max acc:",accuracy)
 
-def plot_all_verbose_accuracies(values):
+def plot_all_accuracies(values):
     for model_values in values:
         accuracies, model_name = model_values
         plt.plot([list(x)[0] for x in accuracies], [list(x)[1] for x in accuracies], label = model_name)
@@ -145,8 +151,8 @@ def run_tests():
     trainloader, testloader = load_data(dataset="cifar10")
     total_batches = len(trainloader)
     #test_max_accuracy_of_networks(num_epochs)
+    test_all_networks(2, False)
     test_all_networks(num_epochs, True)
-    test_all_networks(num_epochs//5, False)
 
 
 
