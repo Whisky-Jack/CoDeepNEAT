@@ -35,6 +35,8 @@ class StandardNet(nn.Module):
             return os.path.join(DataManager.get_DataEfficiencyResults_folder(), "Summarised" , self.get_name())
 
     def get_results(self, verbose):
+        if not self.does_net_have_results_file(verbose):
+            return None
         f = open(self.get_results_file_name(verbose), "r")
         tuples = []
         for line in f:

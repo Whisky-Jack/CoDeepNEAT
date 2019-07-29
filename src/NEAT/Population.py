@@ -100,6 +100,9 @@ class Population:
 
             # find best species
             for species in self.species:
+                if len(species) == self.target_num_species and species.representative == individual:
+                    continue
+
                 distance = individual.distance_to(species.representative)
                 if distance < best_distance:
                     best_distance = distance
@@ -109,6 +112,8 @@ class Population:
                 best_fit_species.add(individual)
             else:
                 self.species.append(Species(individual))
+
+
 
         self.species = [spc for spc in self.species if spc.members]
 

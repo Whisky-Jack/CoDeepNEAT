@@ -67,15 +67,19 @@ def run_epoch_for_n_batches(model,optimiser, num_batches = -1):
         optimiser.step()
 
 def run_model_over_different_batch_numbers(num_epochs, model_type, size, verbose):
-    num_batches = math.ceil(total_batches / 10)
     accuracies = []#tuples of (%training_set, %accuracy)
 
     total_trains = num_epochs * total_batches
     model = model_type(size).to(torch.device("cuda:0"))
     optimiser = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    for i in range(10):
+    fractions = [0,1,2,3,4,5,7,9,12,16,20,40,70,100]
+    for fraction in fractions:
+        if fraction == 0:
+            num_batches = 1
+        else:
+            num_batches = fraction*total_batches/100
 
-        if verbose and i > 0:
+        if verbose and fraction > fractions[0]:
             model = model_type(size).to(torch.device("cuda:0"))
             optimiser = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
         elif not verbose:
@@ -95,9 +99,6 @@ def run_model_over_different_batch_numbers(num_epochs, model_type, size, verbose
 
         print(model.get_name(),("verbose" if verbose else "summarised"),"num_batches:",num_batches,"/",total_batches,("("+str(round(training_proportion))+"%)"),"acc:",accuracy,"%")
 
-
-        num_batches += math.ceil(total_batches/10)
-        num_batches = min(total_batches,num_batches)
 
         accuracies.append((training_proportion,accuracy))
 
@@ -145,14 +146,13 @@ def plot_all_accuracies(values):
     plt.show()
 
 def run_tests():
-    num_epochs = 2*10
 
     global total_batches
     trainloader, testloader = load_data(dataset="cifar10")
     total_batches = len(trainloader)
     #test_max_accuracy_of_networks(num_epochs)
+    test_all_networks(1, True)
     test_all_networks(2, False)
-    test_all_networks(num_epochs, True)
 
 
 

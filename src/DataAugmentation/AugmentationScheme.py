@@ -340,6 +340,7 @@ class AugmentationScheme:
 
             seq = iaa.Sequential(self.augs)
             images_aug = seq.augment_images(self.images)
+
             # print("augmenting",np.shape(self.images), "to",np.shape(images_aug))
             self.labels = self.labels  # labels should be identical
 

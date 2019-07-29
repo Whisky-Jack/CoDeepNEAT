@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # For importing project files
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -8,18 +8,13 @@ dir_path_2 = os.path.split(dir_path)[0]
 sys.path.append(dir_path_1)
 sys.path.append(dir_path_2)
 
-import torch
 from src.DataEfficiency import Net,DataEfficiency
-from src.Validation.DataLoader import load_data
 import math
 import matplotlib.pyplot as plt
-
-import torch.nn as nn
-import torch.optim as optim
-
+import copy
 
 networks = [Net.StandardNet, Net.BatchNormNet, Net.DropOutNet]
-
+#networks = [Net.BatchNormNet]
 
 
 def get_all_networks():
@@ -33,20 +28,30 @@ def get_all_networks():
     return all_networks
 
 def plot_verbose_against_summarised():
-    verbose_points = []
-    summarised_points = []
-    for model in get_all_networks():
-        verbose,summarised = model.get_verbose_and_summarised_results()
-        verbose_points.append(DataEfficiency.solve_for_learning_rate(verbose))
-        summarised_points.append(DataEfficiency.solve_for_learning_rate(summarised))
-        print("verbose:",verbose_points[-1], "summarised:", summarised_points[-1])
 
 
-    plt.scatter(verbose_points, summarised_points, label = "verbose DE vs summarised DE")
+    for model_type in networks:
+        verbose_points = []
+        summarised_points = []
+
+        for i in range(6):
+            size = int(math.pow(2, i))
+            model = model_type(size)
+
+            verbose, summarised = model.get_verbose_and_summarised_results()
+            if verbose is None or summarised is None:
+                continue
+            verbose_points.append(DataEfficiency.solve_for_learning_rate(verbose))
+            summarised_points.append(DataEfficiency.solve_for_learning_rate(summarised))
+            print(repr(model_type),size, "verbose:", verbose_points[-1], "summarised:", summarised_points[-1])
+
+        plt.plot(verbose_points, summarised_points, label=repr(model_type))
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+    plt.gca().legend(handles, labels)
     plt.xlabel("Verbose DE")
     plt.ylabel("Summarised DE")
     plt.show()
-
 
 def plot_size_vs_DE(model_type):
 
@@ -70,8 +75,25 @@ def plot_size_vs_DE(model_type):
     plt.ylabel("DE")
     plt.show()
 
+def plot_data_efficiency_curves(verbose):
+    for model_type in networks:
+        for i in range(6):
+            size = int(math.pow(2, i))
+            model = model_type(size)
+            if not model.does_net_have_results_file(verbose):
+                continue
+            verbose_results, summarised = model.get_verbose_and_summarised_results()
+            if verbose:
+                results = verbose_results
+            else:
+                results = summarised
+            lr = DataEfficiency.solve_for_learning_rate(results)
+            DataEfficiency.plot_tuples_with_best_fit(results, lr, title=repr(model_type) + repr(size) + ": lr=" + repr(lr) +
+                                                                           " , de=" + repr(DataEfficiency.get_data_efficiency(copy.deepcopy(results))))
+
 
 if __name__ == "__main__":
+    plot_data_efficiency_curves(True)
     #plot_verbose_against_summarised()
-    for model_type in networks:
-        plot_size_vs_DE(model_type)
+    # for model_type in networks:
+    #     plot_size_vs_DE(model_type)
