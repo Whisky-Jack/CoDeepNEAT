@@ -1,13 +1,12 @@
 # modified from https://github.com/pytorch/examples/blob/master/mnist/main.py
 import sys
+import time
 
 import torch
-from src.DataAugmentation import BatchAugmentor
-from src.Config import Config
-
-import time
 import torch.multiprocessing as mp
 
+from src.Config import Config
+from src.DataAugmentation import BatchAugmentor
 from src.Validation.DataLoader import load_data
 
 printBatchEvery = -1  # -1 to switch off batch printing
@@ -24,7 +23,7 @@ def train(model, train_loader, epoch, test_loader, device, augmentor=None, print
     :param test_loader: The test dataset loader
     :param print_accuracy: True if should test when printing batch info
     """
-    #print('Train received device:', device)
+    # print('Train received device:', device)
     model.train()
 
     loss = 0
@@ -45,9 +44,9 @@ def train(model, train_loader, epoch, test_loader, device, augmentor=None, print
         model.optimizer.zero_grad()
 
         output = model(inputs)
-        #print("out:",output.size(),"targets:",targets.size(), targets)
+        # print("out:",output.size(),"targets:",targets.size(), targets)
         m_loss = model.loss_fn(output, targets)
-        #print("loss:", m_loss)
+        # print("loss:", m_loss)
         del inputs
         del targets
         # augmented_inputs, augmented_labels = augmented_inputs.to(device), augmented_labels.to(device)
@@ -91,7 +90,7 @@ def test(model, test_loader, device, print_acc=True):
     """
     model.eval()
 
-    #print('testing received device', device)
+    # print('testing received device', device)
     correct = 0
     with torch.no_grad():
         for inputs, targets in test_loader:
@@ -121,7 +120,7 @@ def test(model, test_loader, device, print_acc=True):
     return acc
 
 
-def evaluate(model, epochs, device, batch_size=64, augmentor=None, train_loader = None, test_loader = None):
+def evaluate(model, epochs, device, batch_size=64, augmentor=None, train_loader=None, test_loader=None):
     """
     Runs all epochs and tests the model after all epochs have run
 
@@ -130,10 +129,8 @@ def evaluate(model, epochs, device, batch_size=64, augmentor=None, train_loader 
     :param batch_size: The dataset batch size
     :return: The trained model
     """
-    #print('Eval received device', device, 'on processor', mp.current_process())
     if train_loader is None:
         train_loader, test_loader = load_data(batch_size)
-
 
     s = time.time()
     for epoch in range(1, epochs + 1):
@@ -143,5 +140,3 @@ def evaluate(model, epochs, device, batch_size=64, augmentor=None, train_loader 
     test_acc = test(model, test_loader, device)
     print('Evaluation took', e - s, 'seconds, Test acc:', test_acc)
     return test_acc
-
-
