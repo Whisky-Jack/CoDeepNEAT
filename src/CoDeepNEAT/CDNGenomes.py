@@ -127,7 +127,7 @@ class DAGenome(Genome):
 
     def _to_da_scheme(self, da_scheme: AugmentationScheme, curr_node_id, traversal_dictionary):
         if curr_node_id not in traversal_dictionary:
-            return
+            return 
 
         for node_id in traversal_dictionary[curr_node_id]:
             da_name = self._nodes[node_id].da()
