@@ -24,19 +24,20 @@ def augment_batch(images, labels, augmentor: AS):
     # Displays original image + augmented image (for testing)
     # if random.random() < 1:
     #     print("DA's:",augmentor.augs)
-    #display_image(reformatted_images[0])
-    #display_image(augmented_batch[0])
+    display_image(reformatted_images[0])
+    display_image(augmented_batch[0])
 
     # convert augmented images back to dtype float32
-    reformatted_augmented_batch = reformat_images_for_system(augmented_batch)
-
-    # Reformat augmented batch into the shape that the rest of the code wants
-    #reformatted_augmented_batch = reformatted_augmented_batch.reshape(batch_size, channels, x_Dim, y_dim)
+    converted_augmented_batch = convert_images_for_system(augmented_batch)
+    # reformat images (by transposing) to fit what the system expects
+    reformatted_augmented_batch= reformat_images_for_system(converted_augmented_batch)
 
     # Convert images stored in numpy arrays to tensors
     t_augmented_images = torch.from_numpy(reformatted_augmented_batch)
+
     # Reformat augmented batch into the shape that the rest of the code wants
-    t_augmented_images = np.transpose(t_augmented_images, (0, 3, 1, 2))
+    # t_augmented_images = np.transpose(t_augmented_images, (0, 3, 1, 2))
+
     t_labels = torch.from_numpy(labels)
 
     return t_augmented_images, t_labels
@@ -80,7 +81,7 @@ def reformat_images_for_DA(images):
         return reformatted_images
 
 
-def reformat_images_for_system(augmented_batch):
+def convert_images_for_system(augmented_batch):
     reformatted_augmented_batch_list = []
     if Config.colour_augmentations:
         for img in augmented_batch:
@@ -95,6 +96,12 @@ def reformat_images_for_system(augmented_batch):
 
     return reformatted_augmented_batch
 
+def reformat_images_for_system(augmented_batch):
+    reformatted_aug_images=[]
+    for img in augmented_batch:
+        reformatted_aug_images.append(np.transpose(img, (2, 1, 0)))
+
+    return np.asarray(reformatted_aug_images)
 
 # convert image to data type uint8 (grayscale and HSV require images to be uint8)
 def norm8(img):
