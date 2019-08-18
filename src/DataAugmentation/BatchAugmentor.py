@@ -24,20 +24,20 @@ def augment_batch(images, labels, augmentor: AS):
     # Displays original image + augmented image (for testing)
     # if random.random() < 1:
     #     print("DA's:",augmentor.augs)
-    display_image(reformatted_images[0])
-    display_image(augmented_batch[0])
+    #display_image(reformatted_images[0])
+    #display_image(augmented_batch[0])
 
     # convert augmented images back to dtype float32
     reformatted_augmented_batch = reformat_images_for_system(augmented_batch)
 
     # Reformat augmented batch into the shape that the rest of the code wants
-    reformatted_augmented_batch = reformatted_augmented_batch.reshape(batch_size, channels, x_Dim, y_dim)
+    #reformatted_augmented_batch = reformatted_augmented_batch.reshape(batch_size, channels, x_Dim, y_dim)
 
     # Convert images stored in numpy arrays to tensors
     t_augmented_images = torch.from_numpy(reformatted_augmented_batch)
+    # Reformat augmented batch into the shape that the rest of the code wants
+    t_augmented_images = np.transpose(t_augmented_images, (0, 3, 1, 2))
     t_labels = torch.from_numpy(labels)
-
-    # norm_t_augmented_images = (t_augmented_images/255)*2-1
 
     return t_augmented_images, t_labels
 
