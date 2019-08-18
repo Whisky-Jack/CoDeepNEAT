@@ -24,8 +24,8 @@ def augment_batch(images, labels, augmentor: AS):
     # Displays original image + augmented image (for testing)
     # if random.random() < 1:
     #     print("DA's:",augmentor.augs)
-    #     display_image(reformatted_images[0])
-    #     display_image(augmented_batch[0])
+    display_image(reformatted_images[0])
+    display_image(augmented_batch[0])
 
     # convert augmented images back to dtype float32
     reformatted_augmented_batch = reformat_images_for_system(augmented_batch)
@@ -37,9 +37,9 @@ def augment_batch(images, labels, augmentor: AS):
     t_augmented_images = torch.from_numpy(reformatted_augmented_batch)
     t_labels = torch.from_numpy(labels)
 
-    norm_t_augmented_images = (t_augmented_images/255)*2-1
+    # norm_t_augmented_images = (t_augmented_images/255)*2-1
 
-    return norm_t_augmented_images, t_labels
+    return t_augmented_images, t_labels
 
 
 def display_image(image):
@@ -59,7 +59,8 @@ def reformat_images_for_DA(images):
         reformatted_images_list = []
         for i in images:
             # convert image to uint8 (NB for certain DAs)
-            img = norm8(i)
+            # img = norm8(i)
+            img = i
             # reshuffles dimensions of image to accommodate the library
             img = np.transpose(img, (1, 2, 0))
             # adds image to list
@@ -83,7 +84,7 @@ def reformat_images_for_system(augmented_batch):
     reformatted_augmented_batch_list = []
     if Config.colour_augmentations:
         for img in augmented_batch:
-            reformatted_augmented_batch_list.append(float32(img))
+            reformatted_augmented_batch_list.append(img)
         reformatted_augmented_batch = np.asarray(reformatted_augmented_batch_list)
     else:
         for img in augmented_batch:
