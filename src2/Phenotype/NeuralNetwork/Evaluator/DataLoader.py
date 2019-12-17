@@ -49,7 +49,6 @@ def load_data(composed_transforms: transforms.Compose, split: str) -> DataLoader
         else:
             dataset = valid
     # TODO: test num workers and pin memory
-
     return DataLoader(dataset, batch_size=config.batch_size, shuffle=False, num_workers=0, pin_memory=False)
 
 

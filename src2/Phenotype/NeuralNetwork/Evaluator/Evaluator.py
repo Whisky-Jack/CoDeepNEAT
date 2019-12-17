@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from src2.Phenotype.NeuralNetwork.NeuralNetwork import Network
 
 
-def evaluate(model: Network, num_epochs=config.epochs_in_evolution, fully_training = False):
+def evaluate(model: Network, num_epochs=config.epochs_in_evolution, fully_training=False):
     """trains model on training data, test on testing and returns test acc"""
     if config.dummy_run and not fully_training:
         return random.random()
@@ -33,19 +33,25 @@ def evaluate(model: Network, num_epochs=config.epochs_in_evolution, fully_traini
 
     for epoch in range(num_epochs):
         # print('Thread ', current_thread().name[-1], 'training bp', model.blueprint.id, 'epoch', epoch)
+        print(model.final_layer.weight)
+        test_old(model, test_loader, True)
         train_epoch(model, train_loader)
+        print(model.final_layer.weight)
 
-    return get_test_acc(model, test_loader)
+    return test_old(model, test_loader, True)  # get_test_acc(model, test_loader)
 
 
 def train_epoch(model: Network, train_loader: DataLoader, max_batches=20):
     model.train()
     loss = 0
+    batch_idx = 0
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         if max_batches != -1 and batch_idx > max_batches:
             break
         model.optimizer.zero_grad()
         loss += train_batch(model, inputs, targets)
+
+    print('loss:', loss / batch_idx)
 
 
 def train_batch(model: Network, inputs: torch.tensor, labels: torch.tensor):
@@ -56,7 +62,6 @@ def train_batch(model: Network, inputs: torch.tensor, labels: torch.tensor):
     m_loss = model.loss_fn(output, labels)
     m_loss.backward()
     model.optimizer.step()
-
     return m_loss.item()
 
 
@@ -81,3 +86,40 @@ def get_test_acc(model: Network, test_loader: DataLoader):
             count = batch_idx
 
     return total_acc / count
+
+
+def test_old(model, test_loader, print_acc=False):
+    """
+    Run through a test dataset and return the accuracy
+
+    :param model: the network of type torch.nn.Module
+    :param test_loader: the training dataset
+    :param print_acc: If true accuracy will be printed otherwise it will be returned
+    :return: accuracy
+    """
+    model.eval()
+
+    correct = 0
+    device = config.get_device()
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            output = model(inputs)
+            if len(list(output.size())) == 1:
+                # each batch item has only one value. this value is the class prediction
+                for i in range(list(targets.size())[0]):
+                    prediction = round(list(output)[i].item())
+                    if prediction == list(targets)[i]:
+                        correct += 1
+
+            else:
+                # each batch item has num_classes values, the highest of which predicts the class
+                pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+                correct += pred.eq(targets.view_as(pred)).sum().item()
+
+    acc = 100. * correct / len(test_loader.dataset)
+
+    if print_acc:
+        print('Test set: Accuracy: {}/{} ({:.0f}%)'.format(correct, len(test_loader.dataset), acc))
+
+    return acc

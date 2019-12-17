@@ -27,7 +27,7 @@ class BlueprintGenome(Genome):
         super().__init__(nodes, connections)
 
         # TODO mutate, CDN has ranges in 2017 paper
-        self.learning_rate = ContinuousVariable("learning rate", start_range=0.0006, current_value=0.001,
+        self.learning_rate = ContinuousVariable("learning rate", start_range=0.0006, current_value=1,
                                                 end_range=0.003, mutation_chance=0)
         self.beta1 = ContinuousVariable("beta1", start_range=0.88, current_value=0.9, end_range=0.92, mutation_chance=0)
         self.beta2 = ContinuousVariable("beta2", start_range=0.9988, current_value=0.999, end_range=0.9992,

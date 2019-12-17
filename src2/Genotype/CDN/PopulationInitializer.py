@@ -119,3 +119,24 @@ def _blank_node(node: Union[ModuleNode, BlueprintNode, DANode]) -> ModuleNode:
     regularisation.mutation_chance = 0
 
     return new_node
+
+
+def _create_determ_indiv(Node: Union[Type[ModuleNode], Type[BlueprintNode], Type[DANode]],
+                         Genome: Union[Type[ModuleGenome], Type[BlueprintGenome], Type[DAGenome]]) -> \
+        Union[ModuleGenome, BlueprintGenome, DAGenome]:
+    in_node_params = (0, NodeType.INPUT)
+    out_node_params = (1, NodeType.OUTPUT)
+    mid_node_params = (2, NodeType.HIDDEN)
+
+    if Node == ModuleNode:
+        pass  # set correct params
+
+    if Node == BlueprintNode:
+        pass  # set correct params
+
+    linear = Genome(
+        ([Node(*in_node_params), Node(*mid_node_params), Node(*out_node_params)]),
+        [Connection(1, 0, 2), Connection(2, 2, 1)]  # TODO should this have the connection from 0 -> 1?
+    )
+
+    return linear

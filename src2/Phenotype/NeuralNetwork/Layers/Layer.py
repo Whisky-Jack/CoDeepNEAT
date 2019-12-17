@@ -29,7 +29,7 @@ class Layer(BaseLayer):
         try:
             return self.activation(self.sequential(x))
         except Exception as e:
-            print("error passing shape", x.size(), "through ", self.sequential, '\nModule layer type',
+            print("error passing shape", x.size(), "through " + str(self.sequential) + '\nModule layer type',
                   self.module_node.layer_type.value)
             raise Exception(e)
 
@@ -99,10 +99,12 @@ class Layer(BaseLayer):
             # gathering conv params from module
             window_size = self.module_node.layer_type.get_subvalue('conv_window_size')
             stride = self.module_node.layer_type.get_subvalue('conv_stride')
-            padding = math.ceil((window_size - h) / 2)  # just-in-time padding
-            padding = padding if padding >= 0 else 0
-            if self.module_node.layer_type.get_subvalue("pad_output"):  # Preemptive padding
-                padding = max(padding, (window_size - 1) // 2)
+            # TODO: add back in
+            # padding = math.ceil((window_size - h) / 2)  # just-in-time padding
+            # padding = padding if padding >= 0 else 0
+            # if self.module_node.layer_type.get_subvalue("pad_output"):  # Preemptive padding
+            #     padding = max(padding, (window_size - 1) // 2)
+            padding = 0
 
             # creating conv layer
             deep_layer = nn.Conv2d(channels, self.out_features, window_size, stride, padding)
@@ -138,7 +140,6 @@ class Layer(BaseLayer):
                 modules.insert(0, PadUp(deep_layer.kernel_size[0]))
 
             modules.append(PadUp(deep_layer.kernel_size[0]))
-            print('layer order:', modules)
 
         if not modules:
             modules = [nn.Identity()]

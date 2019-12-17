@@ -16,7 +16,7 @@ class Config:
         self.device = 'gpu'  # cpu
         self.n_gpus = 1
         self.batch_size = 256
-        self.epochs_in_evolution = 8
+        self.epochs_in_evolution = 2
         self.n_evaluations_per_bp = 4
         self.max_model_params = 50e6
 
@@ -24,11 +24,11 @@ class Config:
         # ---------------------------------------------- Debug Options ----------------------------------------------
         self.dummy_run = False
         # ---------------------------------------------- Graphing Options ----------------------------------------------
-        self.view_graph_plots = False  # if true, any plotted graphs will be viewed
+        self.view_graph_plots = True  # if true, any plotted graphs will be viewed
         self.plot_best_genotypes = True
-        self.plot_every_genotype = False
+        self.plot_every_genotype = True
         self.plot_best_phenotype = True
-        self.plot_every_phenotype = False
+        self.plot_every_phenotype = True
         self.plot_module_species = False
         # ----------------------------------------------- Dataset stuff -----------------------------------------------
         self.dataset = 'cifar10'  # mnist | cifar10 | custom
@@ -42,9 +42,9 @@ class Config:
         # ------------------------------------------------- CDN stuff -------------------------------------------------
         self.multiobjective = False
         # Population and species sizes
-        self.module_pop_size = 50
-        self.bp_pop_size = 20
-        self.da_pop_size = 5
+        self.module_pop_size = 56
+        self.bp_pop_size = 22
+        self.da_pop_size = 20
 
         self.n_module_species = 4
         self.n_blueprint_species = 1
@@ -53,6 +53,7 @@ class Config:
         self.module_node_dropout_chance = 0.2
         self.module_node_max_pool_chance = 0.3
         """chance of a new node starting with a deep layer - as opposed to a regulariser only layer"""
+        self.forced_conv_init_window_size = 7  # -1 makes it random
         self.module_node_deep_layer_chance = 1
         self.module_node_conv_layer_chance = 1  # chance of linear = 1-conv. not used if no deep layer
         self.lossy_chance = 0.5

@@ -43,10 +43,13 @@ class ParetoPopulation:
         aug_names = set()
         unique_augs = []
         for aug in augs:
-            name = repr(aug).split("Nodes:")[1].replace("'No_Operation'", "").replace("[]", "").replace('\\n',
-                                                                                                        "").replace(",",
-                                                                                                                    "").replace(
-                '"', "").replace(" ", "")
+            name = repr(aug).split("Nodes:")[1] \
+                .replace("'No_Operation'", "") \
+                .replace("[]", "") \
+                .replace('\\n', "") \
+                .replace(",", "") \
+                .replace('"', "") \
+                .replace(" ", "")
 
             if name not in aug_names:
                 aug_names.add(name)
