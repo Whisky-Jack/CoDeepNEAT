@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor
+import threading
 from typing import Optional, List
 
 import wandb
@@ -26,7 +26,7 @@ from src2.Genotype.NEAT.Operators.Speciators.NEATSpeciator import NEATSpeciator
 from src2.Genotype.NEAT.Population import Population
 from src2.Phenotype.NeuralNetwork.Evaluator.DataLoader import get_data_shape
 from src2.Phenotype.NeuralNetwork.NeuralNetwork import Network
-from src2.Phenotype.PhenotypeEvaluator import evaluate_blueprint
+from src2.Phenotype.PhenotypeEvaluator import evaluate_blueprint, reset_counter
 
 
 class Generation:
@@ -47,7 +47,10 @@ class Generation:
         model_sizes = self.evaluate_blueprints()  # may be parallel
         num_evals = len(self.blueprint_population) * config.n_evaluations_per_bp
         time_taken = time.time() - eval_start_time
-        print("finished ",num_evals,"evals in",time_taken,"seconds, av:",(time_taken/num_evals),"num threads:",config.n_gpus)
+        print("finished %i evaluations in %i (s).\n"
+              "Avg time: %f\n"
+              "Threads: %i"
+              % (num_evals, time_taken, time_taken / num_evals, config.n_gpus))
         # Aggregate the fitnesses immediately after they have all been recorded
         self.module_population.aggregate_fitness()
         self.blueprint_population.aggregate_fitness()
@@ -104,21 +107,20 @@ class Generation:
         in_size = get_data_shape()
         model_sizes: List[int] = []
 
-        print("num blueprints:",len(self.blueprint_population), "num evals:",len(blueprints))
-        print("num modules:",len(self.module_population))
+        print("num blueprints:", len(self.blueprint_population), "num evals:", len(blueprints))
+        print("num modules:", len(self.module_population))
 
-        if config.n_gpus > 1:
-            with ThreadPoolExecutor(max_workers=config.n_gpus, thread_name_prefix='thread') as ex:
-                results = ex.map(
-                    lambda x: evaluate_blueprint(*x),
-                    list(zip(blueprints, [in_size] * len(blueprints), [self.generation_number] * len(blueprints)))
-                )
-                for result in results:
-                    model_sizes.append(result)
+        consumers = []
+        print('gpus', config.n_gpus)
+        for i in range(config.n_gpus):
+            consumers.append(
+                threading.Thread(target=evaluate_blueprint, args=(blueprints, in_size, self.generation_number), name=str(i)))
+            consumers[-1].start()
 
-        else:
-            for bp in blueprints:
-                model_sizes.append(evaluate_blueprint(bp, in_size, self.generation_number))
+        for consumer in consumers:
+            consumer.join()
+
+        reset_counter()
 
         return model_sizes
 
@@ -146,7 +148,7 @@ class Generation:
             create_population(config.bp_pop_size, BlueprintNode, BlueprintGenome),
             create_mr(), config.bp_pop_size, bp_speciator)
 
-        print("initialised pops, bps:",len(self.blueprint_population), "mods:",len(self.module_population))
+        print("initialised pops, bps:", len(self.blueprint_population), "mods:", len(self.module_population))
 
         # TODO DA pop
         if config.evolve_data_augmentations:
