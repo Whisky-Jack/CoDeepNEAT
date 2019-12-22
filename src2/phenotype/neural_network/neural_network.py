@@ -32,7 +32,7 @@ class Network(nn.Module):
         self.blueprint: BlueprintGenome = blueprint
         self.output_dim = output_dim
 
-        self.model: Layer  #todo what is this? should it be named input layer
+        self.model: Layer
         (self.model, output_layer), self.sample_map = blueprint.to_phenotype(sample_map=sample_map)
 
         self.shape_layers(input_shape)

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor
+import torch.multiprocessing as mp
 from typing import Optional, List
 
 import wandb
@@ -26,7 +27,7 @@ from src2.genotype.neat.operators.speciators.neat_speciator import NEATSpeciator
 from src2.genotype.neat.population import Population
 from src2.phenotype.neural_network.evaluator.data_loader import get_data_shape
 from src2.phenotype.neural_network.neural_network import Network
-from src2.phenotype.phenotype_evaluator import evaluate_blueprint
+from src2.phenotype.phenotype_evaluator import evaluate_blueprint, evaluate_blueprints
 
 
 class Generation:
@@ -47,7 +48,9 @@ class Generation:
         model_sizes = self.evaluate_blueprints()  # may be parallel
         num_evals = len(self.blueprint_population) * config.n_evaluations_per_bp
         time_taken = time.time() - eval_start_time
-        print("finished ",num_evals,"evals in",time_taken,"seconds, av:",(time_taken/num_evals),"num threads:",config.n_gpus)
+        print("finished ", num_evals, "evals in", time_taken, "seconds, av:", (time_taken / num_evals), "num threads:",
+              config.n_gpus)
+
         # Aggregate the fitnesses immediately after they have all been recorded
         self.module_population.aggregate_fitness()
         self.blueprint_population.aggregate_fitness()
@@ -60,6 +63,7 @@ class Generation:
             Runs cdn for one generation. Calls the evaluation of all individuals. Prepares population objects for the
             next step.
         """
+        # TODO move this to visualization method
         most_accurate_blueprint: BlueprintGenome = self.blueprint_population.get_most_accurate()
         if config.plot_best_genotypes:
             most_accurate_blueprint.visualize(prefix="best_g" + str(self.generation_number) + "_")
@@ -93,32 +97,33 @@ class Generation:
 
         self.module_population.before_step()
         self.blueprint_population.before_step()
-        # self.da_population.before_step()
 
         # blueprints choosing DA schemes from population
         if config.evolve_data_augmentations:
+            self.da_population.before_step()
             for blueprint_individual in self.blueprint_population:
                 blueprint_individual.pick_da_scheme()
 
+        manager = mp.Manager()
         blueprints = list(self.blueprint_population) * config.n_evaluations_per_bp
+        blueprints_q = manager.Queue(len(self.blueprint_population) * config.n_evaluations_per_bp)
+
+        for bp in blueprints:
+            blueprints_q.put(bp, False)
+
         in_size = get_data_shape()
         model_sizes: List[int] = []
 
-        print("num blueprints:",len(self.blueprint_population), "num evals:",len(blueprints))
-        print("num modules:",len(self.module_population))
+        print("num blueprints:", len(self.blueprint_population), "num evals:", len(blueprints))
+        print("num modules:", len(self.module_population))
 
-        if config.n_gpus > 1:
-            with ThreadPoolExecutor(max_workers=config.n_gpus, thread_name_prefix='thread') as ex:
-                results = ex.map(
-                    lambda x: evaluate_blueprint(*x),
-                    list(zip(blueprints, [in_size] * len(blueprints), [self.generation_number] * len(blueprints)))
-                )
-                for result in results:
-                    model_sizes.append(result)
+        consumers = []
+        for gpu in range(config.n_gpus):
+            consumers.append(mp.Process(target=evaluate_blueprints, args=(blueprints_q, in_size, self.generation_number), name=str(gpu)))
+            consumers[-1].start()
 
-        else:
-            for bp in blueprints:
-                model_sizes.append(evaluate_blueprint(bp, in_size, self.generation_number))
+        for consumer in consumers:
+            consumer.join()
 
         return model_sizes
 
@@ -146,13 +151,14 @@ class Generation:
             create_population(config.bp_pop_size, BlueprintNode, BlueprintGenome),
             create_mr(), config.bp_pop_size, bp_speciator)
 
-        print("initialised pops, bps:",len(self.blueprint_population), "mods:",len(self.module_population))
+        print("initialised pops, bps:", len(self.blueprint_population), "mods:", len(self.module_population))
 
         # TODO DA pop
         if config.evolve_data_augmentations:
             self.da_population = Population(create_population(config.da_pop_size, DANode, DAGenome),
                                             create_mr(), config.da_pop_size, bp_speciator)
 
+    # TODO move this to a wandb manager or something similar
     def wandb_report(self, model_sizes: List[int]):
         module_accs = sorted([module.accuracy for module in self.module_population])
         bp_accs = sorted([bp.accuracy for bp in self.blueprint_population])

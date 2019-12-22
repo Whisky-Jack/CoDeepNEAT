@@ -51,6 +51,7 @@ class Genome(GraphGenome):
             self.fitness_raw[i].append(fitness)
 
     def aggregate_fitness(self):
+        print(self.id, 'aggregating fitnesses:', self.fitness_raw)
         for i, raw_fitness_values in enumerate(self.fitness_raw):
             if not raw_fitness_values:
                 aggregated_fitness = 0

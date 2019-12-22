@@ -1,6 +1,6 @@
 import json
 import os
-from threading import current_thread
+from multiprocessing import current_process
 from typing import Dict
 
 from torch import device
@@ -104,7 +104,7 @@ class Config:
     def get_device(self):
         """Used to obtain the correct device taking into account multiple GPUs"""
         gpu = 'cuda:'
-        gpu_idx = '0' if current_thread().name == 'MainThread' else str(int(current_thread().name[-1]) % self.n_gpus)
+        gpu_idx = '0' if current_process().name == 'MainProcess' else str(int(current_process().name[-1]) % self.n_gpus)
         # print('extracted device id:', gpu_idx)
         gpu += gpu_idx
         return device('cpu') if self.device == 'cpu' else device(gpu)
