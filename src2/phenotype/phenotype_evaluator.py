@@ -10,6 +10,7 @@ from src2.phenotype.neural_network.neural_network import Network
 
 if TYPE_CHECKING:
     from src2.genotype.cdn.genomes.blueprint_genome import BlueprintGenome
+    from src2.main.generation import Generation
     from src2.genotype.cdn.nodes.blueprint_node import BlueprintNode
     from src2.genotype.cdn.genomes.module_genome import ModuleGenome
     from src2.genotype.neat.node import Node
@@ -20,7 +21,7 @@ bp_lock = mp.Lock()
 def evaluate_blueprints(blueprint_q: mp.Queue,
                         completed_blueprints: List[BlueprintGenome],
                         input_size: List[int],
-                        generation_num: int,
+                        generation: Generation,
                         num_epochs: int = config.epochs_in_evolution):
     """
     Consumes blueprints off the blueprints queue, evaluates them and adds them back to the queue if all of their
@@ -34,12 +35,17 @@ def evaluate_blueprints(blueprint_q: mp.Queue,
     :param num_epochs:
     :return:
     """
+    # TODO this is the worst solution ever, there has to be a better one - this does not go on master
+    import src2.main.singleton as S
+    S.instance = generation
+    #
+
     while blueprint_q.qsize() != 0:
         blueprint = blueprint_q.get()
 
         print("proc %s got bp %i from q with %i evals" % (
             mp.current_process().name, blueprint.id, blueprint.n_evaluations))
-        blueprint = evaluate_blueprint(blueprint, input_size, generation_num, num_epochs)
+        blueprint = evaluate_blueprint(blueprint, input_size, generation.generation_number, num_epochs)
         print('acc:', blueprint.fitness_raw[0][-1])
 
         if blueprint.n_evaluations == config.n_evaluations_per_bp:
@@ -60,9 +66,7 @@ def evaluate_blueprint(blueprint: BlueprintGenome, input_size: List[int], genera
     Handles the assignment of the single/multi obj finesses to the blueprint in parallel
     """
     device = config.get_device()
-    print('dev')
     model: Network = Network(blueprint, input_size).to(device)
-    print('ms')
     model_size = sum(p.numel() for p in model.parameters() if p.requires_grad)
     if model_size > config.max_model_params:
         accuracy = 0

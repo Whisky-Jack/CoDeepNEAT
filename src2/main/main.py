@@ -164,5 +164,5 @@ def _force_cuda_device_init():
 
 
 if __name__ == '__main__':
-    mp.set_start_method('fork', force=True)
+    mp.set_start_method('forkserver', force=True)
     main()

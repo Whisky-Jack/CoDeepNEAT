@@ -29,12 +29,12 @@ from src2.genotype.neat.population import Population
 from src2.phenotype.neural_network.evaluator.data_loader import get_data_shape
 from src2.phenotype.neural_network.neural_network import Network
 from src2.phenotype.phenotype_evaluator import evaluate_blueprint, evaluate_blueprints
+import src2.main.singleton as Singleton
 
 
 class Generation:
     def __init__(self):
         self.genome_id_counter = 0  # max genome id of all genomes contained in this generation obj
-        import src2.main.singleton as Singleton
         Singleton.instance = self
 
         self.module_population: Optional[Population] = None
@@ -117,11 +117,10 @@ class Generation:
 
         print("num blueprints:", len(self.blueprint_population), "num evals:", len(blueprints))
         print("num modules:", len(self.module_population))
-
         consumers = []
         for gpu in range(config.n_gpus):
             consumers.append(
-                mp.Process(target=evaluate_blueprints, args=(consumable_q, results, in_size, self.generation_number),
+                mp.Process(target=evaluate_blueprints, args=(consumable_q, results, in_size, self),
                            name=str(gpu)))
             consumers[-1].start()
 
