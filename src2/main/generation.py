@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import ctypes
 import time
 from concurrent.futures import ThreadPoolExecutor
 import torch.multiprocessing as mp
@@ -105,9 +106,9 @@ class Generation:
                 blueprint_individual.pick_da_scheme()
 
         man = mp.Manager()
-        blueprints = list(self.blueprint_population) * config.n_evaluations_per_bp
-        consumable_q = man.Queue(len(self.blueprint_population) * config.n_evaluations_per_bp)
-        results = man.list()
+        blueprints = list(self.blueprint_population)
+        consumable_q = man.Queue(len(blueprints))
+        results: List[BlueprintGenome] = man.list(blueprints)
 
         for bp in blueprints:
             consumable_q.put(bp, False)
@@ -127,7 +128,13 @@ class Generation:
         for consumer in consumers:
             consumer.join()
 
+        # Replacing the bp population with the blueprints that are returned from the processes
+        # i.e the same blueprints, but they have fitness assigned
         self.blueprint_population.species[0].members = {bp.id: bp for bp in results}
+        # Reporting fitness to all modules
+        for bp in self.blueprint_population:
+            for fitness, sample_map in zip(bp.fitness_raw[0], bp.all_sample_maps):
+                bp.report_fitness_to_modules([fitness], sample_map)
 
     def initialise_populations(self):
         """Starts off the populations of a new evolutionary run"""

@@ -33,10 +33,11 @@ class Network(nn.Module):
         self.output_dim = output_dim
 
         self.model: Layer
+        print('tf')
         (self.model, output_layer), self.sample_map = blueprint.to_phenotype(sample_map=sample_map)
-
+        print('tf')
         self.shape_layers(input_shape)
-
+        print('sl')
         # shaping the final layer
         img_flat_size = int(reduce(lambda x, y: x * y, output_layer.out_shape) / output_layer.out_shape[0])
         self.final_layer = nn.Linear(img_flat_size, output_dim)

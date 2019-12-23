@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import multiprocessing.managers
+import multiprocessing as mp
 import argparse
 import datetime
 import os
@@ -33,9 +33,6 @@ if TYPE_CHECKING:
 
 
 def main():
-    # seeding and unseeding pytorch so that the 'random split' is deterministic
-    # TODO is this the best way to enforce a deterministic split? Do we want torch to be seeded?
-    torch.manual_seed(0)
     arg_parse()
 
     if config.device == 'gpu':
@@ -167,21 +164,5 @@ def _force_cuda_device_init():
 
 
 if __name__ == '__main__':
-    import multiprocessing
-
-    # Backup original AutoProxy function
-    backup_autoproxy = multiprocessing.managers.AutoProxy
-
-
-    # Defining a new AutoProxy that handles unwanted key argument 'manager_owned'
-    def redefined_autoproxy(token, serializer, manager=None, authkey=None,
-                            exposed=None, incref=True, manager_owned=True):
-        # Calling original AutoProxy without the unwanted key argument
-        return backup_autoproxy(token, serializer, manager, authkey,
-                                exposed, incref)
-
-
-    # Updating AutoProxy definition in multiprocessing.managers package
-    multiprocessing.managers.AutoProxy = redefined_autoproxy
+    mp.set_start_method('fork', force=True)
     main()
-    # fully_train(n=1)
