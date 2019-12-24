@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import random
 import sys
-import threading
-import multiprocessing as mp
+import torch.multiprocessing as mp
 import time
 from typing import TYPE_CHECKING
 

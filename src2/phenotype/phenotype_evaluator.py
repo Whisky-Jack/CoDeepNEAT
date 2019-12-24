@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import multiprocessing as mp
-# import threading
+import torch.multiprocessing as mp
 from typing import TYPE_CHECKING, List
 
 from src2.configuration import config
@@ -11,11 +10,6 @@ from src2.phenotype.neural_network.neural_network import Network
 if TYPE_CHECKING:
     from src2.genotype.cdn.genomes.blueprint_genome import BlueprintGenome
     from src2.main.generation import Generation
-    from src2.genotype.cdn.nodes.blueprint_node import BlueprintNode
-    from src2.genotype.cdn.genomes.module_genome import ModuleGenome
-    from src2.genotype.neat.node import Node
-
-bp_lock = mp.Lock()
 
 
 def evaluate_blueprints(blueprint_q: mp.Queue,

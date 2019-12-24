@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import multiprocessing as mp
+import torch.multiprocessing as mp
 import argparse
 import datetime
 import os
@@ -164,5 +164,5 @@ def _force_cuda_device_init():
 
 
 if __name__ == '__main__':
-    mp.set_start_method('forkserver', force=True)
+    mp.set_start_method('spawn')
     main()

@@ -4,9 +4,7 @@
 """
 from __future__ import annotations
 
-import ctypes
 import time
-from concurrent.futures import ThreadPoolExecutor
 import torch.multiprocessing as mp
 from typing import Optional, List
 
@@ -28,7 +26,7 @@ from src2.genotype.neat.operators.speciators.neat_speciator import NEATSpeciator
 from src2.genotype.neat.population import Population
 from src2.phenotype.neural_network.evaluator.data_loader import get_data_shape
 from src2.phenotype.neural_network.neural_network import Network
-from src2.phenotype.phenotype_evaluator import evaluate_blueprint, evaluate_blueprints
+from src2.phenotype.phenotype_evaluator import evaluate_blueprints
 import src2.main.singleton as Singleton
 
 
@@ -120,8 +118,7 @@ class Generation:
         consumers = []
         for gpu in range(config.n_gpus):
             consumers.append(
-                mp.Process(target=evaluate_blueprints, args=(consumable_q, results, in_size, self),
-                           name=str(gpu)))
+                mp.Process(target=evaluate_blueprints, args=(consumable_q, results, in_size, self), name=str(gpu)))
             consumers[-1].start()
 
         for consumer in consumers:
