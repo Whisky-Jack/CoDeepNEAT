@@ -13,27 +13,21 @@ if TYPE_CHECKING:
 
 
 def evaluate_blueprints(blueprint_q: mp.Queue,
-                        completed_blueprints: List[BlueprintGenome],
                         input_size: List[int],
                         generation: Generation,
-                        num_epochs: int = config.epochs_in_evolution):
+                        num_epochs: int = config.epochs_in_evolution) -> List[BlueprintGenome]:
     """
     Consumes blueprints off the blueprints queue, evaluates them and adds them back to the queue if all of their
     evaluations have not been completed for the current generation. If all their evaluations have been completed, add
     them to the completed_blueprints list.
 
     :param blueprint_q:
-    :param completed_blueprints:
     :param input_size:
     :param generation_num:
     :param num_epochs:
     :return:
     """
-    # TODO this is the worst solution ever, there has to be a better one - this does not go on master
-    import src2.main.singleton as S
-    S.instance = generation
-    #
-
+    completed_blueprints: List[BlueprintGenome] = []
     while blueprint_q.qsize() != 0:
         blueprint = blueprint_q.get()
 
@@ -47,10 +41,11 @@ def evaluate_blueprints(blueprint_q: mp.Queue,
             print("proc %s put bp %i in completed with %i evals" % (
                 mp.current_process().name, blueprint.id, blueprint.n_evaluations))
         else:
-            print('above put')
             blueprint_q.put(blueprint)
             print("proc %s put bp %i in q with %i evals" % (
                 mp.current_process().name, blueprint.id, blueprint.n_evaluations))
+
+    return completed_blueprints
 
 
 def evaluate_blueprint(blueprint: BlueprintGenome, input_size: List[int], generation_num: int,

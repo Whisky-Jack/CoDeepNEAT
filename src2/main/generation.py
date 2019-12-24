@@ -4,13 +4,13 @@
 """
 from __future__ import annotations
 
-import time
 import torch.multiprocessing as mp
 from typing import Optional, List
 
 import wandb
 
 from runs import runs_manager
+from src2.mp_utils import get_bp_eval_pool
 from src2.configuration import config
 from src2.genotype.cdn.genomes.blueprint_genome import BlueprintGenome
 from src2.genotype.cdn.genomes.da_genome import DAGenome
@@ -27,13 +27,13 @@ from src2.genotype.neat.population import Population
 from src2.phenotype.neural_network.evaluator.data_loader import get_data_shape
 from src2.phenotype.neural_network.neural_network import Network
 from src2.phenotype.phenotype_evaluator import evaluate_blueprints
-import src2.main.singleton as Singleton
+import src2.main.singleton as singleton
 
 
 class Generation:
     def __init__(self):
         self.genome_id_counter = 0  # max genome id of all genomes contained in this generation obj
-        Singleton.instance = self
+        singleton.instance = self
 
         self.module_population: Optional[Population] = None
         self.blueprint_population: Optional[Population] = None
@@ -43,19 +43,16 @@ class Generation:
         self.generation_number = 0
 
     def step_evaluation(self):
-        eval_start_time = time.time()
-        self.evaluate_blueprints()  # may be parallel
-        num_evals = len(self.blueprint_population) * config.n_evaluations_per_bp
-        time_taken = time.time() - eval_start_time
-        print("finished ", num_evals, "evals in", time_taken, "seconds, av:", (time_taken / num_evals), "num threads:",
-              config.n_gpus)
+        self.evaluate_blueprints()
 
-        # Aggregate the fitnesses immediately after they have all been recorded
+        # Aggregate the fitness immediately after they have all been recorded
         self.module_population.aggregate_fitness()
         self.blueprint_population.aggregate_fitness()
 
         if config.use_wandb:
             self.wandb_report()
+
+        print("Best nn:", self.blueprint_population.get_most_accurate().accuracy)
 
     def step_evolution(self):
         """
@@ -70,9 +67,6 @@ class Generation:
             model: Network = Network(most_accurate_blueprint, get_data_shape(),
                                      sample_map=most_accurate_blueprint.best_module_sample_map)
             model.visualize(prefix="best_g" + str(self.generation_number) + "_")
-
-        print("Num blueprint species:", len(self.blueprint_population.species), self.blueprint_population.species)
-        print("Most accurate graph:", self.blueprint_population.get_most_accurate().fitness_values)
 
         self.module_population.step()
         self.blueprint_population.step()
@@ -92,37 +86,35 @@ class Generation:
 
     def evaluate_blueprints(self):
         """Evaluates all blueprints"""
-        # Multiplying the blueprints so that each blueprint is evaluated config.n_evaluations_per_bp times
-
         self.module_population.before_step()
         self.blueprint_population.before_step()
-
         # blueprints choosing DA schemes from population
         if config.evolve_data_augmentations:
             self.da_population.before_step()
             for blueprint_individual in self.blueprint_population:
                 blueprint_individual.pick_da_scheme()
 
-        man = mp.Manager()
-        blueprints = list(self.blueprint_population)
-        consumable_q = man.Queue(len(blueprints))
-        results: List[BlueprintGenome] = man.list(blueprints)
+        # Kicking off evaluation
+        in_size = get_data_shape()
+        consumable_q = mp.get_context('spawn').Manager().Queue(len(list(self.blueprint_population)))
 
-        for bp in blueprints:
+        for bp in self.blueprint_population:
             consumable_q.put(bp, False)
 
-        in_size = get_data_shape()
+        with get_bp_eval_pool(self) as pool:  # TODO will probably be more efficient to keep this alive throughout gens
+            futures = []
+            for i in range(config.n_gpus):
+                futures.append(pool.submit(evaluate_blueprints, consumable_q, in_size, self))
 
-        print("num blueprints:", len(self.blueprint_population), "num evals:", len(blueprints))
-        print("num modules:", len(self.module_population))
-        consumers = []
-        for gpu in range(config.n_gpus):
-            consumers.append(
-                mp.Process(target=evaluate_blueprints, args=(consumable_q, results, in_size, self), name=str(gpu)))
-            consumers[-1].start()
+            self.report_fitness(futures)
 
-        for consumer in consumers:
-            consumer.join()
+    def report_fitness(self, futures):
+        """
+        Collects the results from each process and assigns them to the blueprints and modules on this process
+        """
+        results: List[BlueprintGenome] = []
+        for future in futures:
+            results += future.result()
 
         # Replacing the bp population with the blueprints that are returned from the processes
         # i.e the same blueprints, but they have fitness assigned

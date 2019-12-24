@@ -41,8 +41,10 @@ class Network(nn.Module):
         self.final_layer = nn.Linear(img_flat_size, output_dim)
 
         self.loss_fn = nn.NLLLoss()  # TODO mutagen
+
         self.optimizer: optim.adam = optim.Adam(self.parameters(), lr=self.blueprint.learning_rate.value,
                                                 betas=(self.blueprint.beta1.value, self.blueprint.beta2.value))
+        print('network created')
 
     def forward(self, x):
         q: List[Tuple[Union[Layer, AggregationLayer], tensor]] = [(self.model, x)]
@@ -61,9 +63,7 @@ class Network(nn.Module):
 
     def shape_layers(self, in_shape: list):
         q: List[Tuple[Union[Layer, AggregationLayer], list]] = [(self.model, in_shape)]
-
         while q:
-            sys.stdout.flush()
             layer, input_shape = q.pop()
             output_shape = layer.create_layer(input_shape)
 

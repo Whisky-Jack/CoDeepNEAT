@@ -130,13 +130,14 @@ class Layer(BaseLayer):
         # packing reshape, deep layer and regularisers into a sequential
         modules = [module for module in [reshape_layer, deep_layer, *self._create_regularisers(in_shape)] if
                    module is not None]
-        if self.module_node.is_conv():
-            if reshape_layer is not None:
-                modules.insert(1, PadUp(deep_layer.kernel_size[0]))
-            else:
-                modules.insert(0, PadUp(deep_layer.kernel_size[0]))
 
-            modules.append(PadUp(deep_layer.kernel_size[0]))
+        # if self.module_node.is_conv():
+        #     if reshape_layer is not None:
+        #         modules.insert(1, PadUp(deep_layer.kernel_size[0]))
+        #     else:
+        #         modules.insert(0, PadUp(deep_layer.kernel_size[0]))
+        #
+        #     modules.append(PadUp(deep_layer.kernel_size[0]))
             # print('layer order:', modules)
 
         if not modules:

@@ -105,7 +105,7 @@ class Config:
         """Used to obtain the correct device taking into account multiple GPUs"""
         gpu = 'cuda:'
         gpu_idx = '0' if current_process().name == 'MainProcess' else str(int(current_process().name[-1]) % self.n_gpus)
-        # print('extracted device id:', gpu_idx)
+        print('extracted device id:', gpu_idx)
         gpu += gpu_idx
         return device('cpu') if self.device == 'cpu' else device(gpu)
 
