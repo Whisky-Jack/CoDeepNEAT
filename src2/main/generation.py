@@ -52,7 +52,8 @@ class Generation:
         if config.use_wandb:
             self.wandb_report()
 
-        print("Best nn:", self.blueprint_population.get_most_accurate().accuracy)
+        best = self.blueprint_population.get_most_accurate()
+        print("Best nn: {} - {:.2f}%".format(best.id, best.accuracy * 100))
 
     def step_evolution(self):
         """
@@ -103,7 +104,7 @@ class Generation:
 
         with get_bp_eval_pool(self) as pool:  # TODO will probably be more efficient to keep this alive throughout gens
             futures = []
-            for i in range(config.n_gpus):
+            for i in range(config.n_gpus * config.n_evals_per_gpu):
                 futures.append(pool.submit(evaluate_blueprints, consumable_q, in_size, self))
 
             self.report_fitness(futures)

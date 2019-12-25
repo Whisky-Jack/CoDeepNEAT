@@ -44,7 +44,6 @@ class Network(nn.Module):
 
         self.optimizer: optim.adam = optim.Adam(self.parameters(), lr=self.blueprint.learning_rate.value,
                                                 betas=(self.blueprint.beta1.value, self.blueprint.beta2.value))
-        print('network created')
 
     def forward(self, x):
         q: List[Tuple[Union[Layer, AggregationLayer], tensor]] = [(self.model, x)]

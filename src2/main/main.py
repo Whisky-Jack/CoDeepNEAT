@@ -72,8 +72,6 @@ def arg_parse():
 
 
 def init_generation() -> Generation:
-    print('args parsed', config.run_name)
-
     if not runs_manager.does_run_folder_exist(config.run_name):
         """"fresh run"""
         runs_manager.set_up_run_folder(config.run_name)

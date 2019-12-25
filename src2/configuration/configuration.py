@@ -8,13 +8,13 @@ from torch import device
 
 class Config:
     def __init__(self):
-        print('loading config...')
         # ----------------------------------------------- General stuff -----------------------------------------------
         self.run_name = 'test'
         self.n_generations = 100
         # ------------------------------------------------ Model stuff ------------------------------------------------
         self.device = 'gpu'  # cpu
         self.n_gpus = 1
+        self.n_evals_per_gpu = 1
         self.batch_size = 256
         self.epochs_in_evolution = 8
         self.n_evaluations_per_bp = 4
@@ -104,14 +104,16 @@ class Config:
     def get_device(self):
         """Used to obtain the correct device taking into account multiple GPUs"""
         gpu = 'cuda:'
-        gpu_idx = '0' if current_process().name == 'MainProcess' else str(int(current_process().name[-1]) % self.n_gpus)
-        print('extracted device id:', gpu_idx)
+        gpu_idx = '0' if current_process().name == 'MainProcess' else str(int(current_process().name) % self.n_gpus)
+        # print('extracted device id:', gpu_idx)
         gpu += gpu_idx
         return device('cpu') if self.device == 'cpu' else device(gpu)
 
     def read(self, file: str):
-        print('reading config from file:', file)
         # If the path is not absolute (i.e starts at root) then search in configs dir
+        if not file.endswith('.json'):
+            file += ".json"
+
         if not file.startswith("/"):
             file = os.path.join(os.path.dirname(__file__), 'configs', file)
 
